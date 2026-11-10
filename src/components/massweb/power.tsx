@@ -418,3 +418,54 @@ export function downloadUrl(url: string): void {
   a.remove();
   toast("Download started");
 }
+
+// ---------------------------------------------------------------- AI agent access (MCP + REST)
+export function AgentAccessSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const origin = typeof window === "undefined" ? "" : `${window.location.origin}${appPrefix()}`;
+  const mcp = `${origin}/mcp`;
+  const config = JSON.stringify({ mcpServers: { "mass-web": { type: "http", url: mcp } } }, null, 2);
+  const examples = [
+    { label: "Search", value: `${origin}/api/agent/search?q=kochi+metro&format=text` },
+    { label: "Read a page", value: `${origin}/api/agent/read?url=en.wikipedia.org/wiki/Kerala&format=text` },
+    { label: "Click link 5", value: `${origin}/api/agent/follow?url=news.ycombinator.com&n=5&format=text` },
+    { label: "Guide for AIs", value: `${origin}/llms.txt` },
+  ];
+  const Copyable = ({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) => (
+    <div className="rounded-2xl bg-stone/60 p-3">
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-xs font-medium tracking-wide text-mute uppercase">{label}</span>
+        <button
+          type="button"
+          aria-label={`Copy ${label}`}
+          onClick={async () => (await copyText(value)) && toast(`${label} copied`)}
+          className="mw-press flex h-8 items-center gap-1.5 rounded-full bg-card px-3 text-xs"
+        >
+          <Copy className="h-3.5 w-3.5" /> Copy
+        </button>
+      </div>
+      <p className={`mt-1.5 text-[12.5px] break-all whitespace-pre-wrap ${mono ? "font-mono" : ""}`}>{value}</p>
+    </div>
+  );
+  return (
+    <Sheet open={open} onClose={onClose} title="Mass Web for AI agents" height="tall" label="AI agent access">
+      <p className="text-sm text-mute">
+        AI models and agents (Claude, Grok, your own Mnx, scripts) can use Mass Web as their browser instead of Chrome. They get pages as clean Markdown with numbered
+        links and forms, with ads and trackers already blocked.
+      </p>
+      <div className="mt-4 space-y-3 pb-4">
+        <Copyable label="MCP server URL" value={mcp} />
+        <Copyable label="MCP client config" value={config} />
+        {examples.map((ex) => (
+          <Copyable key={ex.label} label={ex.label} value={ex.value} />
+        ))}
+        <div className="rounded-2xl border border-rule p-3 text-xs leading-relaxed text-mute">
+          <p className="font-medium text-ink">Tools: web_search, open_page, follow_link, find_in_page, submit_form, ask_page</p>
+          <p className="mt-1">
+            Agents never sign in or fill passwords, and each caller is limited to 120 calls per 10 minutes. To make it private, set a <code>MASSWEB_AGENT_KEY</code> on
+            your server; agents then send it as <code>Authorization: Bearer …</code>.
+          </p>
+        </div>
+      </div>
+    </Sheet>
+  );
+}

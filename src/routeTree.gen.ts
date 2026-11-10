@@ -13,10 +13,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as DlRouteImport } from './routes/dl'
 import { Route as FeedRouteImport } from './routes/feed'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ReaderRouteImport } from './routes/reader'
 import { Route as SourceRouteImport } from './routes/source'
 import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as ViewRouteImport } from './routes/view'
+import { Route as ApiAgentActionRouteImport } from './routes/api/agent.$action'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,6 +39,16 @@ const DlRoute = DlRouteImport.update({
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReaderRoute = ReaderRouteImport.update({
@@ -58,26 +71,37 @@ const ViewRoute = ViewRouteImport.update({
   path: '/view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAgentActionRoute = ApiAgentActionRouteImport.update({
+  id: '/api/agent/$action',
+  path: '/api/agent/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/mcp': typeof McpRoute
   '/reader': typeof ReaderRoute
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/mcp': typeof McpRoute
   '/reader': typeof ReaderRoute
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,28 +109,54 @@ export interface FileRoutesById {
   '/ai': typeof AiRoute
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/mcp': typeof McpRoute
   '/reader': typeof ReaderRoute
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/ai' | '/dl' | '/feed' | '/reader' | '/source' | '/suggest' | '/view'
+    | '/'
+    | '/ai'
+    | '/dl'
+    | '/feed'
+    | '/llms.txt'
+    | '/mcp'
+    | '/reader'
+    | '/source'
+    | '/suggest'
+    | '/view'
+    | '/api/agent/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/ai' | '/dl' | '/feed' | '/reader' | '/source' | '/suggest' | '/view'
+    | '/'
+    | '/ai'
+    | '/dl'
+    | '/feed'
+    | '/llms.txt'
+    | '/mcp'
+    | '/reader'
+    | '/source'
+    | '/suggest'
+    | '/view'
+    | '/api/agent/$action'
   id:
     | '__root__'
     | '/'
     | '/ai'
     | '/dl'
     | '/feed'
+    | '/llms.txt'
+    | '/mcp'
     | '/reader'
     | '/source'
     | '/suggest'
     | '/view'
+    | '/api/agent/$action'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -114,10 +164,13 @@ export interface RootRouteChildren {
   AiRoute: typeof AiRoute
   DlRoute: typeof DlRoute
   FeedRoute: typeof FeedRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
+  McpRoute: typeof McpRoute
   ReaderRoute: typeof ReaderRoute
   SourceRoute: typeof SourceRoute
   SuggestRoute: typeof SuggestRoute
   ViewRoute: typeof ViewRoute
+  ApiAgentActionRoute: typeof ApiAgentActionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -150,6 +203,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reader': {
       id: '/reader'
       path: '/reader'
@@ -178,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ViewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/agent/$action': {
+      id: '/api/agent/$action'
+      path: '/api/agent/$action'
+      fullPath: '/api/agent/$action'
+      preLoaderRoute: typeof ApiAgentActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -186,10 +260,13 @@ const rootRouteChildren: RootRouteChildren = {
   AiRoute: AiRoute,
   DlRoute: DlRoute,
   FeedRoute: FeedRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
+  McpRoute: McpRoute,
   ReaderRoute: ReaderRoute,
   SourceRoute: SourceRoute,
   SuggestRoute: SuggestRoute,
   ViewRoute: ViewRoute,
+  ApiAgentActionRoute: ApiAgentActionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

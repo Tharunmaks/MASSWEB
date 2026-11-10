@@ -9,7 +9,7 @@ import { toast } from "@/lib/browser/toast";
 import { languageName, translateAll } from "@/lib/browser/translate";
 import { aiStatus } from "@/lib/browser/ai";
 import { AiPanel, type AiContext, AiUnavailable } from "./ai-panel";
-import { FeedsSheet, NotesSheet, PageInfoSheet, QrSheet, downloadUrl } from "./power";
+import { AgentAccessSheet, FeedsSheet, NotesSheet, PageInfoSheet, QrSheet, downloadUrl } from "./power";
 import { Bar } from "./bar";
 import { NewTabPage } from "./new-tab";
 import { Omnibox, type PaletteCommand } from "./omnibox";
@@ -46,6 +46,7 @@ type Overlay =
   | "feeds"
   | "info"
   | "ai-off"
+  | "agents"
   | null;
 type FrameMessage = {
   source?: string;
@@ -92,6 +93,7 @@ const COMMANDS: PaletteCommand[] = [
   { id: "info", label: "Page info & view source", keywords: "source html developer code" },
   { id: "external", label: "Open in Chrome", keywords: "external app" },
   { id: "settings", label: "Settings", keywords: "preferences options" },
+  { id: "agents", label: "Use Mass Web from AI agents (MCP / API)", keywords: "mcp api agent claude grok mnx developer" },
   { id: "bookmark", label: "Bookmark this page", keywords: "star save" },
   { id: "reload", label: "Reload page", keywords: "refresh" },
 ];
@@ -714,6 +716,7 @@ function Shell() {
       case "notes":
       case "feeds":
       case "info":
+      case "agents":
         setOverlay(action);
         break;
       case "qr":
@@ -1070,7 +1073,8 @@ function Shell() {
           if (active && (site.adblock ?? settings.adblock) !== siteConfig(active.frame).adblock) store().reload(active.id);
         }}
       />
-      <SettingsSheet open={overlay === "settings"} onClose={() => setOverlay(null)} />
+      <SettingsSheet open={overlay === "settings"} onClose={() => setOverlay(null)} onAgents={() => setOverlay("agents")} />
+      <AgentAccessSheet open={overlay === "agents"} onClose={() => setOverlay(null)} />
       <LinkMenu target={linkTarget} onClose={() => setLinkTarget(null)} onAction={linkAction} aiOn={aiOn} />
       <NotesSheet open={overlay === "notes"} onClose={() => setOverlay(null)} onOpen={(url) => (setOverlay(null), active ? go(active.id, url) : store().newTab(url))} />
       <FeedsSheet open={overlay === "feeds"} onClose={() => setOverlay(null)} onOpen={(url) => (setOverlay(null), active ? go(active.id, url) : store().newTab(url))} currentTab={active} />

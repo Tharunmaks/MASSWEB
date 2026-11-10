@@ -70,7 +70,8 @@ export type MenuAction =
   | "feeds"
   | "desktop"
   | "info"
-  | "qr";
+  | "qr"
+  | "agents";
 
 function Tile({ icon, label, onClick, active, disabled }: { icon: ReactNode; label: string; onClick: () => void; active?: boolean; disabled?: boolean }) {
   return (
@@ -587,13 +588,24 @@ const ARCHIVE_OPTIONS = [
   { value: 100000, label: "Never" },
 ];
 
-export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SettingsSheet({ open, onClose, onAgents }: { open: boolean; onClose: () => void; onAgents?: () => void }) {
   const settings = useBrowser((s) => s.settings);
   const set = useBrowser((s) => s.setSettings);
   const clearHistory = useBrowser((s) => s.clearHistory);
   const clearAll = useBrowser((s) => s.clearAll);
   return (
     <Sheet open={open} onClose={onClose} title="Settings" height="tall" label="Settings">
+      {onAgents ? (
+        <button type="button" onClick={onAgents} className="mw-press mb-2 flex w-full items-center gap-3 rounded-2xl bg-ink p-3.5 text-left text-paper">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-paper/15">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-medium">Use Mass Web from AI agents</span>
+            <span className="block truncate text-xs opacity-70">MCP server and API for Claude, Grok, Mnx and scripts</span>
+          </span>
+        </button>
+      ) : null}
       <Section title="Address bar">
         <Segmented
           label="Address bar position"
