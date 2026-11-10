@@ -15,10 +15,13 @@ import { Route as FeedRouteImport } from './routes/feed'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as OpensearchDotxmlRouteImport } from './routes/opensearch[.]xml'
 import { Route as ReaderRouteImport } from './routes/reader'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as SourceRouteImport } from './routes/source'
 import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as ViewRouteImport } from './routes/view'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiAgentActionRouteImport } from './routes/api/agent.$action'
 
 const IndexRoute = IndexRouteImport.update({
@@ -51,9 +54,19 @@ const McpRoute = McpRouteImport.update({
   path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpensearchDotxmlRoute = OpensearchDotxmlRouteImport.update({
+  id: '/opensearch.xml',
+  path: '/opensearch.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReaderRoute = ReaderRouteImport.update({
   id: '/reader',
   path: '/reader',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SourceRoute = SourceRouteImport.update({
@@ -71,6 +84,11 @@ const ViewRoute = ViewRouteImport.update({
   path: '/view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAgentActionRoute = ApiAgentActionRouteImport.update({
   id: '/api/agent/$action',
   path: '/api/agent/$action',
@@ -84,10 +102,13 @@ export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
+  '/opensearch.xml': typeof OpensearchDotxmlRoute
   '/reader': typeof ReaderRoute
+  '/search': typeof SearchRoute
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/search': typeof ApiSearchRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRoutesByTo {
@@ -97,10 +118,13 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
+  '/opensearch.xml': typeof OpensearchDotxmlRoute
   '/reader': typeof ReaderRoute
+  '/search': typeof SearchRoute
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/search': typeof ApiSearchRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRoutesById {
@@ -111,10 +135,13 @@ export interface FileRoutesById {
   '/health': typeof HealthRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
+  '/opensearch.xml': typeof OpensearchDotxmlRoute
   '/reader': typeof ReaderRoute
+  '/search': typeof SearchRoute
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/search': typeof ApiSearchRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRouteTypes {
@@ -126,10 +153,13 @@ export interface FileRouteTypes {
     | '/health'
     | '/llms.txt'
     | '/mcp'
+    | '/opensearch.xml'
     | '/reader'
+    | '/search'
     | '/source'
     | '/suggest'
     | '/view'
+    | '/api/search'
     | '/api/agent/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -139,10 +169,13 @@ export interface FileRouteTypes {
     | '/health'
     | '/llms.txt'
     | '/mcp'
+    | '/opensearch.xml'
     | '/reader'
+    | '/search'
     | '/source'
     | '/suggest'
     | '/view'
+    | '/api/search'
     | '/api/agent/$action'
   id:
     | '__root__'
@@ -152,10 +185,13 @@ export interface FileRouteTypes {
     | '/health'
     | '/llms.txt'
     | '/mcp'
+    | '/opensearch.xml'
     | '/reader'
+    | '/search'
     | '/source'
     | '/suggest'
     | '/view'
+    | '/api/search'
     | '/api/agent/$action'
   fileRoutesById: FileRoutesById
 }
@@ -166,10 +202,13 @@ export interface RootRouteChildren {
   HealthRoute: typeof HealthRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   McpRoute: typeof McpRoute
+  OpensearchDotxmlRoute: typeof OpensearchDotxmlRoute
   ReaderRoute: typeof ReaderRoute
+  SearchRoute: typeof SearchRoute
   SourceRoute: typeof SourceRoute
   SuggestRoute: typeof SuggestRoute
   ViewRoute: typeof ViewRoute
+  ApiSearchRoute: typeof ApiSearchRoute
   ApiAgentActionRoute: typeof ApiAgentActionRoute
 }
 
@@ -217,11 +256,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/opensearch.xml': {
+      id: '/opensearch.xml'
+      path: '/opensearch.xml'
+      fullPath: '/opensearch.xml'
+      preLoaderRoute: typeof OpensearchDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reader': {
       id: '/reader'
       path: '/reader'
       fullPath: '/reader'
       preLoaderRoute: typeof ReaderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/source': {
@@ -245,6 +298,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ViewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/agent/$action': {
       id: '/api/agent/$action'
       path: '/api/agent/$action'
@@ -262,10 +322,13 @@ const rootRouteChildren: RootRouteChildren = {
   HealthRoute: HealthRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   McpRoute: McpRoute,
+  OpensearchDotxmlRoute: OpensearchDotxmlRoute,
   ReaderRoute: ReaderRoute,
+  SearchRoute: SearchRoute,
   SourceRoute: SourceRoute,
   SuggestRoute: SuggestRoute,
   ViewRoute: ViewRoute,
+  ApiSearchRoute: ApiSearchRoute,
   ApiAgentActionRoute: ApiAgentActionRoute,
 }
 export const routeTree = rootRouteImport

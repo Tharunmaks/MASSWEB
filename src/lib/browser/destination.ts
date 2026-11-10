@@ -1,10 +1,17 @@
-export type SearchEngine = "bing" | "duckduckgo" | "google";
+export type SearchEngine = "mass" | "duckduckgo" | "google";
+
+/** Mass Web's own results page lives on an internal address; the page server renders it. */
+export const MASS_SEARCH = "mass://search";
 
 export const SEARCH_ENGINES: Record<SearchEngine, { name: string; url: (q: string) => string }> = {
-  bing: { name: "Bing", url: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}` },
+  mass: { name: "Mass Search", url: (q) => `${MASS_SEARCH}?q=${encodeURIComponent(q)}` },
   duckduckgo: { name: "DuckDuckGo", url: (q) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}` },
   google: { name: "Google", url: (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}&gbv=1` },
 };
+
+export function isMassSearch(url: string | null | undefined): boolean {
+  return !!url && url.startsWith(`${MASS_SEARCH}?`);
+}
 
 /** Does the typed text look like an address rather than a search? */
 export function looksLikeUrl(input: string): boolean {
@@ -15,9 +22,10 @@ export function looksLikeUrl(input: string): boolean {
   return /^[^/?#]+\.[a-z]{2,}(:\d+)?([/?#].*)?$/i.test(query) || /^\d{1,3}(\.\d{1,3}){3}(:\d+)?([/?#].*)?$/.test(query);
 }
 
-export function destination(input: string, engine: SearchEngine = "bing"): string | null {
+export function destination(input: string, engine: SearchEngine = "mass"): string | null {
   const query = input.trim();
   if (!query) return null;
+  if (isMassSearch(query)) return query;
   if (/^https?:\/\//i.test(query)) return cleanUrl(unwrapRedirect(query));
   if (looksLikeUrl(query)) return cleanUrl(`https://${query}`);
   return SEARCH_ENGINES[engine].url(query);
@@ -98,6 +106,7 @@ export function unwrapRedirect(raw: string): string {
 
 export function hostOf(url: string | null | undefined): string {
   if (!url) return "";
+  if (isMassSearch(url)) return "Mass Search";
   try {
     return new URL(url).hostname.replace(/^www\./, "");
   } catch {
@@ -107,6 +116,13 @@ export function hostOf(url: string | null | undefined): string {
 
 /** What the address bar shows when you're not editing: the search terms for a search page, else the host. */
 export function displayText(url: string): string {
+  if (isMassSearch(url)) {
+    try {
+      return new URL(url).searchParams.get("q") || "Mass Search";
+    } catch {
+      return "Mass Search";
+    }
+  }
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.replace(/^www\./, "");

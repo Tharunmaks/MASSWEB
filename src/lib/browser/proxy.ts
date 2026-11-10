@@ -1,5 +1,5 @@
 import { CORS_HEADERS } from "@/lib/browser/cors";
-import { cleanUrl, destination, unwrapRedirect } from "@/lib/browser/destination";
+import { cleanUrl, destination, isMassSearch, unwrapRedirect } from "@/lib/browser/destination";
 import { injectedScript } from "@/lib/browser/inject";
 import type { BlockReport } from "@/lib/browser/adblock.server";
 
@@ -591,6 +591,21 @@ export async function proxyRequest(request: Request): Promise<Response> {
   const fresh = params.has("fresh");
   const desktop = params.get("ua") === "desktop";
   const lite = params.get("lite") === "1";
+
+  if (isMassSearch(picked)) {
+    // Mass Web's own search results page.
+    const search = new URL(picked);
+    const query = search.searchParams.get("q") || "";
+    const page = Number(search.searchParams.get("p") || "1") || 1;
+    const [{ massSearch }, { renderSearchPage }] = await Promise.all([import("@/lib/browser/masssearch.server"), import("@/lib/browser/search-page.server")]);
+    const data = await massSearch(query, request, page);
+    return htmlResponse(renderSearchPage(data, { dark, embedded: true }), 200, {
+      "cache-control": query && !fresh ? "public, max-age=0, s-maxage=120, stale-while-revalidate=600" : "no-store",
+      "x-mw-final-url": picked,
+      "x-mw-status": "200",
+      "x-mw-readable": "0",
+    });
+  }
 
   const [loaded, engine] = await Promise.all([
     loadTarget(request, picked, desktop),

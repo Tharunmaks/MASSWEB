@@ -11,6 +11,19 @@ A fast, private web browser for your phone, and a browser for AI agents, built f
 - **Power tools:** page info and view source, QR codes, downloads, backup and restore.
 - **For AI agents:** an MCP server and REST API so AI models can browse through Mass Web instead of Chrome.
 
+## Mass Search
+
+Mass Web has its own search engine. It never uses Bing or Google and it doesn't scrape anyone: every source is an API that allows automated use.
+
+- **Sources:** Marginalia (independent index), Wikipedia, DuckDuckGo Instant Answers, Hacker News and Stack Overflow, merged into one ranked list.
+- **Instant answers:** calculator, definitions (`define word`), and a Wikipedia knowledge card.
+- **Use it anywhere:** `/search?q=...` is a normal results page, `/api/search?q=...` returns JSON, and `/opensearch.xml` lets Chrome, Edge or Firefox add Mass Search as a search engine.
+- **Stronger results (optional):** set `BRAVE_SEARCH_KEY` (Brave Search API) and/or `MOJEEK_API_KEY` (Mojeek API) in Vercel's environment variables to add their full independent web indexes.
+
+## Agent tools
+
+`web_search`, `open_page`, `open_pages` (up to 20 pages at once, cached, duplicate stories dropped), `research` (search + open + dated sources to cite, with an optional "last N days" filter), `follow_link`, `find_in_page`, `submit_form`. Every page comes with its URL, published date and fetch date, its heading outline and button labels, and page text is wrapped in markers as untrusted content.
+
 ## How it's hosted
 
 Mass Web has two parts:

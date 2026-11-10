@@ -117,7 +117,7 @@ function today(): string {
 
 export const DEFAULT_SETTINGS: Settings = {
   barPosition: "bottom",
-  searchEngine: "bing",
+  searchEngine: "mass",
   darkPages: false,
   adblock: true,
   archiveHours: 24,
@@ -497,7 +497,12 @@ export const useBrowser = create<State & Actions>()(
         return {
           ...current,
           ...saved,
-          settings: { ...DEFAULT_SETTINGS, ...(saved.settings || {}) },
+          settings: {
+            ...DEFAULT_SETTINGS,
+            ...(saved.settings || {}),
+            // Bing is gone: anyone who had it moves to Mass Search.
+            ...((saved.settings as { searchEngine?: string } | undefined)?.searchEngine === "bing" ? { searchEngine: "mass" as const } : {}),
+          },
           spaces: saved.spaces && saved.spaces.length ? saved.spaces : current.spaces,
           tabs: (saved.tabs || []).map((tab) => ({ ...tab, frame: tab.url, nonce: 0, fresh: false, postBody: null, loading: false })),
           incognitoMode: false,

@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { hostOf } from "@/lib/browser/destination";
+import { hostOf, isMassSearch } from "@/lib/browser/destination";
 import { useToast } from "@/lib/browser/toast";
 
 /** Keeps something mounted for its exit animation after `open` turns false. */
@@ -111,13 +111,24 @@ export function Sheet({
 
 /** Site icon: the page's own icon, then Google's favicon service, then a letter tile. */
 export function SiteIcon({ url, icon, size = 16, className = "" }: { url: string | null; icon?: string; size?: number; className?: string }) {
-  const host = hostOf(url);
+  const host = isMassSearch(url) ? "" : hostOf(url);
   const sources = [icon, host ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=${size > 24 ? 128 : 64}` : ""].filter(
     (src): src is string => !!src,
   );
   const [attempt, setAttempt] = useState(0);
   useEffect(() => setAttempt(0), [icon, host]);
   const src = sources[attempt];
+  if (isMassSearch(url)) {
+    return (
+      <span
+        style={{ width: size, height: size, fontSize: Math.max(9, size * 0.58) }}
+        className={`flex shrink-0 items-center justify-center rounded-[28%] bg-cobalt font-semibold text-white ${className}`}
+        aria-label="Mass Search"
+      >
+        M
+      </span>
+    );
+  }
   if (!host || !src) {
     return (
       <span

@@ -1,6 +1,6 @@
 import { Search, ShieldCheck, VenetianMask } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { hostOf } from "@/lib/browser/destination";
+import { hostOf, isMassSearch } from "@/lib/browser/destination";
 import { type SavedArticle, listSaved } from "@/lib/browser/offline";
 import { useBrowser } from "@/lib/browser/state";
 import { SiteIcon } from "./ui";
@@ -9,7 +9,7 @@ const DEFAULTS = [
   { name: "Wikipedia", url: "https://en.m.wikipedia.org/" },
   { name: "Hacker News", url: "https://news.ycombinator.com/" },
   { name: "GitHub", url: "https://github.com/" },
-  { name: "DuckDuckGo", url: "https://html.duckduckgo.com/html/" },
+  { name: "Internet Archive", url: "https://archive.org/" },
   { name: "MDN", url: "https://developer.mozilla.org/en-US/" },
   { name: "Lobsters", url: "https://lobste.rs/" },
   { name: "Gutenberg", url: "https://www.gutenberg.org/" },
@@ -42,6 +42,7 @@ export function NewTabPage({ incognito, onSearch, onOpen, onOpenSaved, onShield 
   const top = useMemo(() => {
     const counts = new Map<string, { url: string; title: string; n: number }>();
     for (const item of history.slice(0, 800)) {
+      if (isMassSearch(item.url) || !/^https?:/.test(item.url)) continue;
       const host = hostOf(item.url);
       if (!host || /bing\.com|duckduckgo\.com|google\./.test(host)) continue;
       const entry = counts.get(host);

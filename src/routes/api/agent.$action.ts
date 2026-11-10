@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const ACTIONS: Record<string, string> = { search: "web_search", read: "open_page", follow: "follow_link", find: "find_in_page", submit: "submit_form" };
+const ACTIONS: Record<string, string> = { search: "web_search", read: "open_page", follow: "follow_link", find: "find_in_page", submit: "submit_form", open: "open_pages", research: "research" };
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, status === 200 ? 0 : 2), {
@@ -39,7 +39,7 @@ async function handle(request: Request, action: string): Promise<Response> {
   }
 }
 
-/** REST API for AI agents: /api/agent/search, /read, /follow, /find, /submit, /ask */
+/** REST API for AI agents: /api/agent/search, /read, /follow, /find, /submit, /open, /research */
 export const Route = createFileRoute("/api/agent/$action")({
   server: {
     handlers: {

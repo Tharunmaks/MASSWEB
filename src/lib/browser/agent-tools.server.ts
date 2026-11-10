@@ -1,5 +1,5 @@
 import { webSearch } from "@/lib/browser/search.server";
-import { AgentError, findInPage, followLink, pageAsText, readPage, submitForm } from "@/lib/browser/agent.server";
+import { AgentError, batchAsText, findInPage, followLink, pageAsText, readPage, readPages, research, researchAsText, submitForm } from "@/lib/browser/agent.server";
 
 /** The tools Mass Web offers AI agents. Shared by the MCP server and the REST API. */
 export type ToolDef = { name: string; description: string; inputSchema: Record<string, unknown> };
@@ -11,7 +11,7 @@ export function toolDefs(): ToolDef[] {
   const tools: ToolDef[] = [
     {
       name: "web_search",
-      description: "Search the web. Returns numbered results with title, URL and snippet. Open one with open_page.",
+      description: "Search the web with Mass Search (independent indexes, no Bing/Google). Returns numbered results with title, URL and snippet, plus an instant answer or knowledge card when there is one. Open one with open_page.",
       inputSchema: { type: "object", properties: { query: { type: "string", description: "What to search for" } }, required: ["query"] },
     },
     {
@@ -38,6 +38,34 @@ export function toolDefs(): ToolDef[] {
         type: "object",
         properties: { url, form: { type: "integer", minimum: 1, description: "Form number from open_page" }, values: { type: "object", additionalProperties: { type: "string" }, description: "Field name → value" }, max_chars: maxChars },
         required: ["url", "form"],
+      },
+    },
+    {
+      name: "open_pages",
+      description:
+        "Open up to 20 pages at the same time and return each as clean text with its URL and published date. Results are cached, and near-copies of the same story are reported once. Use this after web_search instead of opening pages one by one.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          urls: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 20, description: "Page URLs" },
+          max_chars: { type: "integer", description: "Max characters per page (default 6000, up to 30000).", minimum: 1000, maximum: 30000 },
+        },
+        required: ["urls"],
+      },
+    },
+    {
+      name: "research",
+      description:
+        "One call that searches, opens the top results together, drops duplicate stories, and returns numbered sources with URL, published date and text, ready to cite. Set days to keep only pages published in the last N days (pages with no date are left out and listed as skipped).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "What to research" },
+          pages: { type: "integer", minimum: 1, maximum: 12, description: "How many sources to return (default 6)" },
+          days: { type: "integer", minimum: 1, description: "Only sources published in the last N days" },
+          max_chars: { type: "integer", minimum: 800, maximum: 10000, description: "Max characters per source (default 3000)" },
+        },
+        required: ["query"],
       },
     },
   ];
@@ -86,6 +114,17 @@ export async function runTool(name: string, args: Record<string, unknown>, reque
       const values = (args.values && typeof args.values === "object" ? args.values : {}) as Record<string, string>;
       const page = await submitForm(str(args.url, "url"), int(args.form, "form"), values, request, optInt(args.max_chars));
       return { data: page, text: pageAsText(page) };
+    }
+    case "open_pages": {
+      const raw = Array.isArray(args.urls) ? args.urls : typeof args.urls === "string" ? args.urls.split(/[\s,]+/) : [];
+      const urls = raw.filter((u): u is string => typeof u === "string" && !!u.trim());
+      if (!urls.length) throw new AgentError("'urls' is required: a list of page URLs.");
+      const items = await readPages(urls, request, { maxChars: optInt(args.max_chars) });
+      return { data: { pages: items }, text: batchAsText(items) };
+    }
+    case "research": {
+      const result = await research(str(args.query, "query"), request, { pages: optInt(args.pages), days: optInt(args.days), maxChars: optInt(args.max_chars) });
+      return { data: result, text: researchAsText(result) };
     }
   }
   throw new AgentError(`Unknown tool '${name}'.`, 404);
