@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { appPrefix } from "@/lib/browser/offline";
+import { serverBase } from "@/lib/browser/server";
 
 export type FrameInfo = { finalUrl: string; readable: boolean; blocked: number; trackers: string; adblock: string };
 
@@ -12,7 +12,7 @@ function viewUrl(url: string, opts: { dark: boolean; adblock: boolean; fresh: bo
   if (opts.dark) params.set("dark", "1");
   if (!opts.adblock) params.set("ab", "0");
   if (opts.fresh) params.set("fresh", String(Date.now()));
-  return `${appPrefix()}/view?${params.toString()}`;
+  return `${serverBase()}/view?${params.toString()}`;
 }
 
 export function PageFrame({

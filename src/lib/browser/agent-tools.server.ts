@@ -1,4 +1,4 @@
-import { aiAvailable, buildContext, callGrok, webSearch } from "@/lib/browser/ai.server";
+import { webSearch } from "@/lib/browser/search.server";
 import { AgentError, findInPage, followLink, pageAsText, readPage, submitForm } from "@/lib/browser/agent.server";
 
 /** The tools Mass Web offers AI agents. Shared by the MCP server and the REST API. */
@@ -41,13 +41,6 @@ export function toolDefs(): ToolDef[] {
       },
     },
   ];
-  if (aiAvailable()) {
-    tools.push({
-      name: "ask_page",
-      description: "Have Grok read a page and answer a question about it (uses the Mass Web owner's AI credits).",
-      inputSchema: { type: "object", properties: { url, question: { type: "string" } }, required: ["url", "question"] },
-    });
-  }
   return tools;
 }
 
@@ -93,17 +86,6 @@ export async function runTool(name: string, args: Record<string, unknown>, reque
       const values = (args.values && typeof args.values === "object" ? args.values : {}) as Record<string, string>;
       const page = await submitForm(str(args.url, "url"), int(args.form, "form"), values, request, optInt(args.max_chars));
       return { data: page, text: pageAsText(page) };
-    }
-    case "ask_page": {
-      if (!aiAvailable()) throw new AgentError("AI isn't switched on for this Mass Web deployment.", 503);
-      const page = await readPage(str(args.url, "url"), request, { maxChars: 24_000 });
-      const question = str(args.question, "question");
-      const { system } = await buildContext({ mode: "page", messages: [], page: { url: page.url, title: page.title, text: page.markdown } }, request);
-      const res = await callGrok(system, [{ role: "user", content: question }], { stream: false, maxTokens: 900 });
-      if (!res.ok) throw new AgentError(`Grok answered ${res.status}.`, 502);
-      const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-      const answer = json.choices?.[0]?.message?.content || "";
-      return { data: { url: page.url, question, answer }, text: answer };
     }
   }
   throw new AgentError(`Unknown tool '${name}'.`, 404);

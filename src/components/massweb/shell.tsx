@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Copy, ExternalLink, Highlighter, Languages, RotateCw, Search, Sparkles, Undo2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, ExternalLink, Highlighter, Languages, RotateCw, Search, Undo2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { cleanUrl, destination, displayText, hostOf, unwrapRedirect } from "@/lib/browser/destination";
@@ -7,10 +7,10 @@ import { type Article, fetchArticle, saveArticle } from "@/lib/browser/offline";
 import { type Tab, useBrowser } from "@/lib/browser/state";
 import { toast } from "@/lib/browser/toast";
 import { languageName, translateAll } from "@/lib/browser/translate";
-import { aiStatus } from "@/lib/browser/ai";
-import { AiPanel, type AiContext, AiUnavailable } from "./ai-panel";
 import { AgentAccessSheet, FeedsSheet, NotesSheet, PageInfoSheet, QrSheet, downloadUrl } from "./power";
 import { Bar } from "./bar";
+import { ConnectServer } from "./server-setup";
+import { needsServer, setServer } from "@/lib/browser/server";
 import { NewTabPage } from "./new-tab";
 import { Omnibox, type PaletteCommand } from "./omnibox";
 import { type FrameInfo, PageFrame } from "./page-frame";
@@ -45,7 +45,6 @@ type Overlay =
   | "notes"
   | "feeds"
   | "info"
-  | "ai-off"
   | "agents"
   | null;
 type FrameMessage = {
@@ -71,7 +70,6 @@ type FrameMessage = {
 };
 
 const COMMANDS: PaletteCommand[] = [
-  { id: "ask", label: "Ask Grok about this page", keywords: "ai grok summarize summary chat question" },
   { id: "new-tab", label: "New tab", keywords: "open tab" },
   { id: "incognito", label: "New incognito tab", keywords: "private secret" },
   { id: "reader", label: "Reader view", keywords: "read article clean" },
@@ -93,7 +91,7 @@ const COMMANDS: PaletteCommand[] = [
   { id: "info", label: "Page info & view source", keywords: "source html developer code" },
   { id: "external", label: "Open in Chrome", keywords: "external app" },
   { id: "settings", label: "Settings", keywords: "preferences options" },
-  { id: "agents", label: "Use Mass Web from AI agents (MCP / API)", keywords: "mcp api agent claude grok mnx developer" },
+  { id: "agents", label: "Use Mass Web from AI agents (MCP / API)", keywords: "mcp api agent claude mnx developer" },
   { id: "bookmark", label: "Bookmark this page", keywords: "star save" },
   { id: "reload", label: "Reload page", keywords: "refresh" },
 ];
@@ -102,7 +100,24 @@ const PULL_TRIGGER = 110;
 
 export function Browser() {
   const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  const [connected, setConnected] = useState(true);
+  useEffect(() => {
+    // ?server=… sets the page server once (handy for sharing a ready-to-use link).
+    try {
+      const url = new URL(window.location.href);
+      const server = url.searchParams.get("server");
+      if (server) {
+        setServer(server);
+        url.searchParams.delete("server");
+        history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+      }
+    } catch {
+      /* ignore */
+    }
+    setConnected(!needsServer());
+    setReady(true);
+  }, []);
+  if (ready && !connected) return <ConnectServer onConnected={() => setConnected(true)} />;
   if (!ready) {
     return (
       <div className="grid h-dvh place-items-center bg-paper">
@@ -134,14 +149,11 @@ function Shell() {
   const [morphId, setMorphId] = useState<string | null>(null);
   const [live, setLive] = useState<string[]>([]);
   const [translated, setTranslated] = useState<Record<string, boolean>>({});
-  const [aiOn, setAiOn] = useState(false);
-  const [ai, setAi] = useState<AiContext | null>(null);
   const [selection, setSelection] = useState<{ key: string; text: string } | null>(null);
   const [selTranslation, setSelTranslation] = useState<{ text: string; out: string } | null>(null);
   const [qr, setQr] = useState<{ url: string; title: string } | null>(null);
   const [paletteSeed, setPaletteSeed] = useState("");
   const highlights = useBrowser((s) => s.highlights);
-  const textWaiters = useRef(new Map<number, (v: { title: string; text: string } | null) => void>());
 
   const frames = useRef(new Map<string, HTMLIFrameElement>());
   const lastNav = useRef(new Map<string, number>());
@@ -239,9 +251,8 @@ function Shell() {
     pushConfig();
   }, [sites, settings.darkPages, highlights]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---------- AI availability, deep links (?open=… / shared text) ----------
+  // ---------- deep links (?open=… / shared text) ----------
   useEffect(() => {
-    aiStatus().then(setAiOn);
     try {
       const params = new URLSearchParams(window.location.search);
       const raw = params.get("open") || params.get("url") || params.get("text") || "";
@@ -257,35 +268,6 @@ function Shell() {
       /* ignore bad links */
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** Ask a page frame for its visible text (used as the AI's context). */
-  const getPageText = useCallback(
-    (key: string) =>
-      new Promise<{ title: string; text: string } | null>((resolve) => {
-        if (!frames.current.get(key)) return resolve(null);
-        const id = Math.floor(Math.random() * 1e9);
-        const timer = setTimeout(() => {
-          textWaiters.current.delete(id);
-          resolve(null);
-        }, 2500);
-        textWaiters.current.set(id, (value) => {
-          clearTimeout(timer);
-          resolve(value);
-        });
-        sendTo(key, { type: "text-collect", id });
-      }),
-    [sendTo],
-  );
-
-  function openAi(context: AiContext) {
-    if (!aiOn) {
-      setOverlay("ai-off");
-      return;
-    }
-    setOverlay(null);
-    setLinkTarget(null);
-    setAi(context);
-  }
 
   const go = useCallback(
     (tabId: string, raw: string, postBody: string | null = null) => {
@@ -314,14 +296,6 @@ function Shell() {
       case "hello": {
         const { dark, zoom, css, zapped, highlights: marks } = siteConfig(keyUrl(key));
         sendTo(key, { type: "config", dark, zoom, css, zapped, highlights: marks });
-        break;
-      }
-      case "page-text": {
-        const done = data.id !== undefined ? textWaiters.current.get(data.id) : undefined;
-        if (done) {
-          textWaiters.current.delete(data.id!);
-          done({ title: data.title || "", text: data.text || "" });
-        }
         break;
       }
       case "selection":
@@ -477,7 +451,6 @@ function Shell() {
   back.current = () => {
     if (qr) return setQr(null), true;
     if (selTranslation) return setSelTranslation(null), true;
-    if (ai) return setAi(null), true;
     if (linkTarget) return setLinkTarget(null), true;
     if (overlay) return setOverlay(null), true;
     if (glance) return setGlance(null), true;
@@ -497,8 +470,8 @@ function Shell() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);  
   useEffect(() => {
-    if (overlay || glance || reader || find || linkTarget || ai || qr) ensureTrap();
-  }, [overlay, glance, reader, find, linkTarget, ai, qr]);  
+    if (overlay || glance || reader || find || linkTarget || qr) ensureTrap();
+  }, [overlay, glance, reader, find, linkTarget, qr]);  
 
   // ---------- desktop keyboard shortcuts ----------
   const keys = useRef<(event: KeyboardEvent) => void>(() => undefined);
@@ -518,9 +491,6 @@ function Shell() {
       event.preventDefault();
       setPaletteSeed(">");
       setOverlay("omnibox");
-    } else if (meta && key === "j" && active?.url) {
-      event.preventDefault();
-      openAi({ kind: "page", url: active.url, title: active.title });
     } else if (meta && key === "r" && active) {
       event.preventDefault();
       store().reload(active.id);
@@ -710,9 +680,6 @@ function Shell() {
       case "external":
         if (url) openExternally(url);
         break;
-      case "ask":
-        if (tab && url) openAi({ kind: "page", url, title: tab.title });
-        break;
       case "notes":
       case "feeds":
       case "info":
@@ -738,13 +705,12 @@ function Shell() {
     runMenu(id as MenuAction);
   }
 
-  function selectionAction(action: "explain" | "translate" | "highlight" | "copy" | "search") {
+  function selectionAction(action: "translate" | "highlight" | "copy" | "search") {
     if (!selection || !active) return;
     const text = selection.text;
     sendTo(selection.key, { type: "clearselection" });
     setSelection(null);
-    if (action === "explain" && active.url) openAi({ kind: "selection", url: active.url, title: active.title, selection: text, prompt: "Explain this passage in plain words, using the page for context." });
-    else if (action === "copy") copyText(text).then((ok) => ok && toast("Copied"));
+    if (action === "copy") copyText(text).then((ok) => ok && toast("Copied"));
     else if (action === "search") newTab(destination(text, store().settings.searchEngine));
     else if (action === "highlight" && active.url) {
       store().addHighlight(active.url, active.title, text);
@@ -793,9 +759,6 @@ function Shell() {
       case "image":
         s.newTab(url, { background: true });
         toast("Image opened in background tab");
-        break;
-      case "summarize":
-        openAi({ kind: "link", url, title: hostOf(url), prompt: "Summarize this page in 5 bullet points. Is it worth reading?" });
         break;
       case "download":
         downloadUrl(url);
@@ -962,11 +925,6 @@ function Shell() {
         {selection && !zapping ? (
           <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-3">
             <div className="mw-rise pointer-events-auto flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full bg-ink p-1 text-sm text-paper shadow-lift" role="toolbar" aria-label="Selected text actions">
-              {aiOn ? (
-                <button type="button" onClick={() => selectionAction("explain")} className="mw-press flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-paper/15 px-3.5 font-medium">
-                  <Sparkles className="h-4 w-4" /> Explain
-                </button>
-              ) : null}
               <button type="button" onClick={() => selectionAction("highlight")} className="mw-press flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3">
                 <Highlighter className="h-4 w-4" /> Highlight
               </button>
@@ -1015,8 +973,6 @@ function Shell() {
           else store().newTab(url);
         }}
         onSwitchTab={(id) => pickTab(id, null)}
-        aiOn={aiOn}
-        onAsk={(query) => openAi({ kind: "search", query })}
         commands={COMMANDS}
         onCommand={runCommand}
         seed={paletteSeed}
@@ -1032,7 +988,6 @@ function Shell() {
           setOverlay(null);
           toggleSplit(id);
         }}
-        aiOn={aiOn}
       />
 
       <MenuSheet
@@ -1044,7 +999,6 @@ function Shell() {
         dark={siteConfig(active?.url).dark}
         desktop={siteConfig(active?.url).desktop}
         split={!!split}
-        aiOn={aiOn}
         onAction={runMenu}
       />
       <HistorySheet open={overlay === "history"} onClose={() => setOverlay(null)} onOpen={(url) => (setOverlay(null), active ? go(active.id, url) : store().newTab(url))} />
@@ -1075,21 +1029,11 @@ function Shell() {
       />
       <SettingsSheet open={overlay === "settings"} onClose={() => setOverlay(null)} onAgents={() => setOverlay("agents")} />
       <AgentAccessSheet open={overlay === "agents"} onClose={() => setOverlay(null)} />
-      <LinkMenu target={linkTarget} onClose={() => setLinkTarget(null)} onAction={linkAction} aiOn={aiOn} />
+      <LinkMenu target={linkTarget} onClose={() => setLinkTarget(null)} onAction={linkAction} />
       <NotesSheet open={overlay === "notes"} onClose={() => setOverlay(null)} onOpen={(url) => (setOverlay(null), active ? go(active.id, url) : store().newTab(url))} />
       <FeedsSheet open={overlay === "feeds"} onClose={() => setOverlay(null)} onOpen={(url) => (setOverlay(null), active ? go(active.id, url) : store().newTab(url))} currentTab={active} />
       <PageInfoSheet open={overlay === "info"} onClose={() => setOverlay(null)} tab={active} onDownload={downloadUrl} />
       <QrSheet url={qr?.url ?? null} title={qr?.title ?? ""} onClose={() => setQr(null)} />
-      <AiUnavailable open={overlay === "ai-off"} onClose={() => setOverlay(null)} />
-      <AiPanel
-        context={ai}
-        onClose={() => setAi(null)}
-        getPageText={() => (active ? getPageText(active.id) : Promise.resolve(null))}
-        onOpenUrl={(url) => {
-          setAi(null);
-          store().newTab(url);
-        }}
-      />
       <Sheet open={!!selTranslation} onClose={() => setSelTranslation(null)} title={`Translation · ${languageName(settings.translateTo)}`} label="Translation">
         {selTranslation ? (
           <div className="pb-4">

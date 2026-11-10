@@ -1,3 +1,4 @@
+import { CORS_HEADERS } from "@/lib/browser/cors";
 import { cleanUrl, destination, unwrapRedirect } from "@/lib/browser/destination";
 import { injectedScript } from "@/lib/browser/inject";
 import type { BlockReport } from "@/lib/browser/adblock.server";
@@ -141,6 +142,7 @@ function htmlResponse(body: string, status = 200, extra: Record<string, string> 
       "cache-control": "no-store",
       "referrer-policy": "no-referrer",
       "x-content-type-options": "nosniff",
+      ...CORS_HEADERS,
       ...extra,
     },
   });

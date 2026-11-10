@@ -1,5 +1,4 @@
-import { Archive, Columns2, FolderInput, Pencil, Plus, Search, Sparkles, Star, Trash2, VenetianMask, X } from "lucide-react";
-import { tidyTabs } from "@/lib/browser/ai";
+import { Archive, Columns2, FolderInput, Pencil, Plus, Search, Star, Trash2, VenetianMask, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { hostOf } from "@/lib/browser/destination";
 import { haptic } from "@/lib/browser/device";
@@ -20,9 +19,7 @@ export function TabGrid({
   onPick,
   onNewTab,
   onSplitWith,
-  aiOn,
 }: {
-  aiOn: boolean;
   open: boolean;
   morphId: string | null;
   onClose: () => void;
@@ -35,7 +32,6 @@ export function TabGrid({
   const [editing, setEditing] = useState<{ id: string | null; name: string; emoji: string } | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [query, setQuery] = useState("");
-  const [tidy, setTidy] = useState<{ loading: boolean; groups: { name: string; emoji: string; tabs: Tab[] }[] } | null>(null);
   if (!open) return null;
 
   const active = s.activeTab();
@@ -45,25 +41,7 @@ export function TabGrid({
     ? s.tabs.filter((tab) => !tab.archivedAt && tab.incognito === s.incognitoMode && `${tab.title} ${tab.url ?? ""}`.toLowerCase().includes(needle))
     : spacePool;
 
-  async function runTidy() {
-    const tabs = spacePool.filter((t) => t.url);
-    if (tabs.length < 4) {
-      toast("Open at least 4 tabs to tidy");
-      return;
-    }
-    if (!useBrowser.getState().useAi()) {
-      toast("Daily AI limit reached");
-      return;
-    }
-    setTidy({ loading: true, groups: [] });
-    try {
-      const groups = await tidyTabs(tabs.map((t) => ({ url: t.url!, title: t.title })));
-      setTidy({ loading: false, groups: groups.map((g) => ({ name: g.name, emoji: g.emoji, tabs: g.tabs.map((i) => tabs[i]).filter(Boolean) })) });
-    } catch (error) {
-      setTidy(null);
-      toast(error instanceof Error ? error.message : "Couldn't organise tabs.");
-    }
-  }
+
   const archived = s.tabs.filter((tab) => tab.archivedAt && !tab.incognito).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
   const incognitoCount = s.tabs.filter((tab) => tab.incognito).length;
 
@@ -144,11 +122,7 @@ export function TabGrid({
             </button>
           ) : null}
         </label>
-        {aiOn && !s.incognitoMode ? (
-          <button type="button" onClick={runTidy} className="mw-press flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-ink px-3.5 text-sm text-paper">
-            <Sparkles className="h-4 w-4" /> Tidy
-          </button>
-        ) : null}
+
       </div>
 
       <div className="mw-noscroll min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-28">
@@ -295,55 +269,6 @@ export function TabGrid({
                 setMenuTab(null);
               }}
             />
-          </div>
-        ) : null}
-      </Sheet>
-
-      <Sheet open={!!tidy} onClose={() => setTidy(null)} title="Tidy tabs" height="tall" label="Tidy tabs">
-        {tidy?.loading ? (
-          <div className="flex items-center gap-2 py-10 text-sm text-mute" role="status">
-            <Sparkles className="h-4 w-4 animate-pulse" /> Grok is sorting {spacePool.length} tabs…
-          </div>
-        ) : tidy ? (
-          <div className="pb-2">
-            <p className="text-sm text-mute">Grok suggests these spaces. Tabs move into them; nothing is closed.</p>
-            <div className="mt-3 space-y-3">
-              {tidy.groups.map((g) => (
-                <div key={g.name} className="rounded-2xl bg-stone/60 p-3">
-                  <p className="font-medium">
-                    {g.emoji} {g.name} <span className="text-sm font-normal text-mute">· {g.tabs.length}</span>
-                  </p>
-                  <div className="mt-1.5 space-y-1">
-                    {g.tabs.map((t) => (
-                      <p key={t.id} className="flex items-center gap-2 truncate text-sm">
-                        <SiteIcon url={t.url} icon={t.icon} size={14} />
-                        <span className="truncate">{t.title}</span>
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                const st = useBrowser.getState();
-                const keep = st.activeSpace;
-                for (const g of tidy.groups) {
-                  const existing = st.spaces.find((sp) => sp.name.toLowerCase() === g.name.toLowerCase());
-                  const id = existing?.id ?? useBrowser.getState().addSpace(g.name, g.emoji);
-                  for (const t of g.tabs) useBrowser.getState().moveTab(t.id, id);
-                }
-                const first = useBrowser.getState().spaces.find((sp) => sp.name.toLowerCase() === tidy.groups[0]?.name.toLowerCase());
-                useBrowser.getState().switchSpace(first?.id ?? keep);
-                setTidy(null);
-                haptic();
-                toast(`Organised into ${tidy.groups.length} spaces`);
-              }}
-              className="mw-press mt-4 h-12 w-full rounded-full bg-ink text-[15px] font-medium text-paper"
-            >
-              Organise into {tidy.groups.length} spaces
-            </button>
           </div>
         ) : null}
       </Sheet>

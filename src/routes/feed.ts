@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CORS_HEADERS, preflight } from "@/lib/browser/cors";
 import { decodePage, fetchPublic, parsePublicUrl } from "@/lib/browser/proxy";
 
 type Item = { title: string; link: string; date: number; summary: string };
@@ -51,11 +52,12 @@ function parseFeed(xml: string, base: string): { title: string; link: string; it
 export const Route = createFileRoute("/feed")({
   server: {
     handlers: {
+      OPTIONS: () => preflight(),
       GET: async ({ request }) => {
         const json = (body: unknown, status = 200) =>
           new Response(JSON.stringify(body), {
             status,
-            headers: { "content-type": "application/json; charset=utf-8", "cache-control": status === 200 ? "public, max-age=0, s-maxage=300" : "no-store" },
+            headers: { "content-type": "application/json; charset=utf-8", "cache-control": status === 200 ? "public, max-age=0, s-maxage=300" : "no-store", ...CORS_HEADERS },
           });
         const raw = new URL(request.url).searchParams.get("u") || "";
         try {

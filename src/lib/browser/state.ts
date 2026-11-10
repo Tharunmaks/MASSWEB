@@ -31,7 +31,6 @@ export type Tab = {
 export type Space = { id: string; name: string; emoji: string };
 export type Site = { url: string; title: string; at: number };
 export type SiteSettings = { zoom?: number; dark?: boolean; adblock?: boolean; css?: string; zapped?: string[]; desktop?: boolean };
-export type Skill = { id: string; name: string; prompt: string };
 export type Highlight = { id: string; text: string; note: string; at: number; title: string };
 export type Feed = { url: string; title: string; siteUrl: string; lastSeen: number; added: number };
 export type Split = { a: string; b: string; ratio: number; focus: "a" | "b" } | null;
@@ -49,7 +48,6 @@ export type Settings = {
   haptics: boolean;
   voiceRate: number;
   maxLiveTabs: number;
-  aiDailyLimit: number;
   autoReader: boolean;
   dataSaver: boolean;
 };
@@ -68,10 +66,8 @@ type State = {
   sites: Record<string, SiteSettings>;
   settings: Settings;
   stats: Stats;
-  skills: Skill[];
   highlights: Record<string, Highlight[]>;
   feeds: Feed[];
-  aiUsage: { day: string; count: number };
 };
 
 type Actions = {
@@ -102,15 +98,12 @@ type Actions = {
   setSettings: (patch: Partial<Settings>) => void;
   countBlocked: (trackers: string, count: number) => void;
   clearAll: () => void;
-  saveSkill: (skill: Omit<Skill, "id"> & { id?: string }) => void;
-  removeSkill: (id: string) => void;
   addHighlight: (url: string, title: string, text: string) => string;
   noteHighlight: (url: string, id: string, note: string) => void;
   removeHighlight: (url: string, id: string) => void;
   followFeed: (feed: Omit<Feed, "lastSeen" | "added">) => void;
   unfollowFeed: (url: string) => void;
   markFeedSeen: (url: string) => void;
-  useAi: () => boolean;
   importData: (data: Partial<State>) => void;
 };
 
@@ -135,17 +128,9 @@ export const DEFAULT_SETTINGS: Settings = {
   haptics: true,
   voiceRate: 1,
   maxLiveTabs: 4,
-  aiDailyLimit: 80,
   autoReader: false,
   dataSaver: false,
 };
-
-export const DEFAULT_SKILLS: Skill[] = [
-  { id: "s-eli", name: "Explain simply", prompt: "Explain this page so a 15-year-old would understand it. Use a short analogy." },
-  { id: "s-facts", name: "Key facts", prompt: "List the key facts, numbers, names and dates on this page as short bullets." },
-  { id: "s-verdict", name: "Pros & cons", prompt: "Give the main pros and cons or arguments for and against from this page, then a one-line verdict." },
-  { id: "s-ml", name: "Malayalam summary", prompt: "Summarise this page in Malayalam in 5 bullet points." },
-];
 
 const HOME_SPACE: Space = { id: "home", name: "Home", emoji: "🏠" };
 
@@ -186,10 +171,8 @@ const initial: State = {
   sites: {},
   settings: DEFAULT_SETTINGS,
   stats: { total: 0, byHost: {}, byDay: {} },
-  skills: DEFAULT_SKILLS,
   highlights: {},
   feeds: [],
-  aiUsage: { day: "", count: 0 },
 };
 
 /** localStorage that never throws (private windows, blocked storage, previews). */
@@ -441,15 +424,6 @@ export const useBrowser = create<State & Actions>()(
 
       clearAll: () => set({ ...initial, settings: get().settings }),
 
-      saveSkill: (skill) =>
-        set((state) => {
-          const id = skill.id || uid();
-          const next = { id, name: skill.name.trim().slice(0, 40) || "Skill", prompt: skill.prompt.trim().slice(0, 1500) };
-          const exists = state.skills.some((item) => item.id === id);
-          return { skills: exists ? state.skills.map((item) => (item.id === id ? next : item)) : [...state.skills, next] };
-        }),
-
-      removeSkill: (id) => set((state) => ({ skills: state.skills.filter((item) => item.id !== id) })),
 
       addHighlight: (url, title, text) => {
         const id = uid();
@@ -484,14 +458,6 @@ export const useBrowser = create<State & Actions>()(
 
       markFeedSeen: (url) => set((state) => ({ feeds: state.feeds.map((item) => (item.url === url ? { ...item, lastSeen: Date.now() } : item)) })),
 
-      useAi: () => {
-        const s = get();
-        const day = today();
-        const count = s.aiUsage.day === day ? s.aiUsage.count : 0;
-        if (count >= s.settings.aiDailyLimit) return false;
-        set({ aiUsage: { day, count: count + 1 } });
-        return true;
-      },
 
       importData: (data) =>
         set((state) => ({
@@ -501,7 +467,6 @@ export const useBrowser = create<State & Actions>()(
           bookmarks: Array.isArray(data.bookmarks) ? data.bookmarks : state.bookmarks,
           sites: data.sites && typeof data.sites === "object" ? data.sites : state.sites,
           settings: { ...state.settings, ...(data.settings || {}) },
-          skills: Array.isArray(data.skills) ? data.skills : state.skills,
           highlights: data.highlights && typeof data.highlights === "object" ? data.highlights : state.highlights,
           feeds: Array.isArray(data.feeds) ? data.feeds : state.feeds,
           activeSpace: data.spaces?.length ? data.spaces[0].id : state.activeSpace,
@@ -524,10 +489,8 @@ export const useBrowser = create<State & Actions>()(
         sites: state.sites,
         settings: state.settings,
         stats: state.stats,
-        skills: state.skills,
         highlights: state.highlights,
         feeds: state.feeds,
-        aiUsage: state.aiUsage,
       }),
       merge: (persisted, current) => {
         const saved = (persisted || {}) as Partial<State>;

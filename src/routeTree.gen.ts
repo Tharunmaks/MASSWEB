@@ -10,9 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AiRouteImport } from './routes/ai'
 import { Route as DlRouteImport } from './routes/dl'
 import { Route as FeedRouteImport } from './routes/feed'
+import { Route as HealthRouteImport } from './routes/health'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ReaderRouteImport } from './routes/reader'
@@ -26,11 +26,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AiRoute = AiRouteImport.update({
-  id: '/ai',
-  path: '/ai',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DlRoute = DlRouteImport.update({
   id: '/dl',
   path: '/dl',
@@ -39,6 +34,11 @@ const DlRoute = DlRouteImport.update({
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
@@ -79,9 +79,9 @@ const ApiAgentActionRoute = ApiAgentActionRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ai': typeof AiRoute
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
+  '/health': typeof HealthRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/reader': typeof ReaderRoute
@@ -92,9 +92,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ai': typeof AiRoute
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
+  '/health': typeof HealthRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/reader': typeof ReaderRoute
@@ -106,9 +106,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ai': typeof AiRoute
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
+  '/health': typeof HealthRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/reader': typeof ReaderRoute
@@ -121,9 +121,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ai'
     | '/dl'
     | '/feed'
+    | '/health'
     | '/llms.txt'
     | '/mcp'
     | '/reader'
@@ -134,9 +134,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/ai'
     | '/dl'
     | '/feed'
+    | '/health'
     | '/llms.txt'
     | '/mcp'
     | '/reader'
@@ -147,9 +147,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/ai'
     | '/dl'
     | '/feed'
+    | '/health'
     | '/llms.txt'
     | '/mcp'
     | '/reader'
@@ -161,9 +161,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AiRoute: typeof AiRoute
   DlRoute: typeof DlRoute
   FeedRoute: typeof FeedRoute
+  HealthRoute: typeof HealthRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   McpRoute: typeof McpRoute
   ReaderRoute: typeof ReaderRoute
@@ -182,13 +182,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ai': {
-      id: '/ai'
-      path: '/ai'
-      fullPath: '/ai'
-      preLoaderRoute: typeof AiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dl': {
       id: '/dl'
       path: '/dl'
@@ -201,6 +194,13 @@ declare module '@tanstack/react-router' {
       path: '/feed'
       fullPath: '/feed'
       preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/llms.txt': {
@@ -257,9 +257,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AiRoute: AiRoute,
   DlRoute: DlRoute,
   FeedRoute: FeedRoute,
+  HealthRoute: HealthRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   McpRoute: McpRoute,
   ReaderRoute: ReaderRoute,

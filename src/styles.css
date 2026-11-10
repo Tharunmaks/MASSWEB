@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Scan the app code even when the build starts from pages/ (GitHub Pages build). */
+@source "./";
 
 :root {
   --mw-ink: #17140f;

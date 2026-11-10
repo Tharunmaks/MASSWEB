@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CORS_HEADERS, preflight } from "@/lib/browser/cors";
 import { decodePage, loadTarget } from "@/lib/browser/proxy";
 
 /** The page's original HTML, as the site sent it (for View source). */
 export const Route = createFileRoute("/source")({
   server: {
     handlers: {
+      OPTIONS: () => preflight(),
       GET: async ({ request }) => {
         const raw = new URL(request.url).searchParams.get("u") || "";
         const loaded = await loadTarget(new Request(request.url, { method: "GET", headers: request.headers }), raw);
-        if ("error" in loaded) return new Response("This page couldn't be loaded.", { status: 502, headers: { "content-type": "text/plain; charset=utf-8" } });
+        if ("error" in loaded) return new Response("This page couldn't be loaded.", { status: 502, headers: { "content-type": "text/plain; charset=utf-8", ...CORS_HEADERS } });
         const { fetched } = loaded;
         const text = decodePage(fetched.bytes.subarray(0, 2_000_000), fetched.contentType);
         return new Response(text, {
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/source")({
             "x-mw-status": String(fetched.status),
             "x-mw-bytes": String(fetched.bytes.byteLength),
             "x-mw-type": fetched.contentType.slice(0, 120),
+            ...CORS_HEADERS,
           },
         });
       },

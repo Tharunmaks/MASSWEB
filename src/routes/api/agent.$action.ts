@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const ACTIONS: Record<string, string> = { search: "web_search", read: "open_page", follow: "follow_link", find: "find_in_page", submit: "submit_form", ask: "ask_page" };
+const ACTIONS: Record<string, string> = { search: "web_search", read: "open_page", follow: "follow_link", find: "find_in_page", submit: "submit_form" };
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, status === 200 ? 0 : 2), {

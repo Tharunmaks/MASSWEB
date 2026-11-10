@@ -1,3 +1,4 @@
+import { serverBase } from "@/lib/browser/server";
 /** Saved-for-offline articles, kept in IndexedDB on the phone. */
 export type Article = {
   url: string;
@@ -68,14 +69,8 @@ export async function removeSaved(url: string): Promise<void> {
 }
 
 export async function fetchArticle(url: string): Promise<Article> {
-  const res = await fetch(`${appPrefix()}/reader?u=${encodeURIComponent(url)}`);
+  const res = await fetch(`${serverBase()}/reader?u=${encodeURIComponent(url)}`);
   const data = (await res.json()) as Article | { error: string };
   if (!res.ok || "error" in data) throw new Error("error" in data ? data.error : "Reader view failed.");
   return data;
-}
-
-/** Path prefix when the app is served under a preview path (e.g. /hds-xyz-123-abc). */
-export function appPrefix(): string {
-  if (typeof window === "undefined") return "";
-  return window.location.pathname.match(/^\/hds-[a-z0-9]+-\d+-[a-z0-9]+/i)?.[0] ?? "";
 }

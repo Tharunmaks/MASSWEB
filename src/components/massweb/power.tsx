@@ -2,7 +2,7 @@ import { Code2, Copy, Download, ExternalLink, Highlighter, Plus, Rss, Share2, Tr
 import { useEffect, useMemo, useState } from "react";
 import { displayText, hostOf } from "@/lib/browser/destination";
 import { copyText, shareLink } from "@/lib/browser/device";
-import { appPrefix } from "@/lib/browser/offline";
+import { serverBase } from "@/lib/browser/server";
 import { type Feed, type Tab, useBrowser } from "@/lib/browser/state";
 import { toast } from "@/lib/browser/toast";
 import { Sheet, SiteIcon } from "./ui";
@@ -125,7 +125,7 @@ type FeedItem = { title: string; link: string; date: number; summary: string };
 type FeedData = { feedUrl: string; title: string; link: string; items: FeedItem[] };
 
 export async function loadFeed(url: string): Promise<FeedData> {
-  const res = await fetch(`${appPrefix()}/feed?u=${encodeURIComponent(url)}`);
+  const res = await fetch(`${serverBase()}/feed?u=${encodeURIComponent(url)}`);
   const data = (await res.json()) as FeedData & { error?: string };
   if (!res.ok || data.error) throw new Error(data.error || "Couldn't load that feed.");
   return data;
@@ -298,7 +298,7 @@ export function PageInfoSheet({ open, onClose, tab, onDownload }: { open: boolea
   const loadSource = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${appPrefix()}/source?u=${encodeURIComponent(url)}`);
+      const res = await fetch(`${serverBase()}/source?u=${encodeURIComponent(url)}`);
       const text = await res.text();
       setSource({ text, status: res.headers.get("x-mw-status") || String(res.status), bytes: res.headers.get("x-mw-bytes") || String(text.length), type: res.headers.get("x-mw-type") || "" });
     } catch {
@@ -410,7 +410,7 @@ export function QrSheet({ url, title, onClose }: { url: string | null; title: st
 // ---------------------------------------------------------------- downloads + backup helpers
 export function downloadUrl(url: string): void {
   const a = document.createElement("a");
-  a.href = `${appPrefix()}/dl?u=${encodeURIComponent(url)}`;
+  a.href = `${serverBase()}/dl?u=${encodeURIComponent(url)}`;
   a.rel = "noopener";
   a.download = "";
   document.body.appendChild(a);
@@ -421,7 +421,7 @@ export function downloadUrl(url: string): void {
 
 // ---------------------------------------------------------------- AI agent access (MCP + REST)
 export function AgentAccessSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const origin = typeof window === "undefined" ? "" : `${window.location.origin}${appPrefix()}`;
+  const origin = typeof window === "undefined" ? "" : serverBase() || window.location.origin;
   const mcp = `${origin}/mcp`;
   const config = JSON.stringify({ mcpServers: { "mass-web": { type: "http", url: mcp } } }, null, 2);
   const examples = [
@@ -449,7 +449,7 @@ export function AgentAccessSheet({ open, onClose }: { open: boolean; onClose: ()
   return (
     <Sheet open={open} onClose={onClose} title="Mass Web for AI agents" height="tall" label="AI agent access">
       <p className="text-sm text-mute">
-        AI models and agents (Claude, Grok, your own Mnx, scripts) can use Mass Web as their browser instead of Chrome. They get pages as clean Markdown with numbered
+        AI models and agents (your own Mnx, Claude, any MCP client, scripts) can use Mass Web as their browser instead of Chrome. They get pages as clean Markdown with numbered
         links and forms, with ads and trackers already blocked.
       </p>
       <div className="mt-4 space-y-3 pb-4">
@@ -459,7 +459,7 @@ export function AgentAccessSheet({ open, onClose }: { open: boolean; onClose: ()
           <Copyable key={ex.label} label={ex.label} value={ex.value} />
         ))}
         <div className="rounded-2xl border border-rule p-3 text-xs leading-relaxed text-mute">
-          <p className="font-medium text-ink">Tools: web_search, open_page, follow_link, find_in_page, submit_form, ask_page</p>
+          <p className="font-medium text-ink">Tools: web_search, open_page, follow_link, find_in_page, submit_form</p>
           <p className="mt-1">
             Agents never sign in or fill passwords, and each caller is limited to 120 calls per 10 minutes. To make it private, set a <code>MASSWEB_AGENT_KEY</code> on
             your server; agents then send it as <code>Authorization: Bearer …</code>.

@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CORS_HEADERS, preflight } from "@/lib/browser/cors";
 
 /** Search suggestions for the address bar (DuckDuckGo's public autocomplete). */
 export const Route = createFileRoute("/suggest")({
   server: {
     handlers: {
+      OPTIONS: () => preflight(),
       GET: async ({ request }) => {
         const q = (new URL(request.url).searchParams.get("q") || "").trim().slice(0, 120);
         let list: string[] = [];
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/suggest")({
           headers: {
             "content-type": "application/json; charset=utf-8",
             "cache-control": "public, max-age=300, s-maxage=3600",
+            ...CORS_HEADERS,
           },
         });
       },

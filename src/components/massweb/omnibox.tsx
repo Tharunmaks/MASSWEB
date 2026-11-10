@@ -1,16 +1,15 @@
-import { ArrowUpLeft, Bookmark, Clock, Command, Copy, Globe, Layers, Search, Share2, Sparkles, X } from "lucide-react";
-import { looksLikeQuestion } from "@/lib/browser/ai";
+import { ArrowUpLeft, Bookmark, Clock, Command, Copy, Globe, Layers, Search, Share2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SEARCH_ENGINES, destination, displayText, hostOf, looksLikeUrl } from "@/lib/browser/destination";
 import { copyText, shareLink } from "@/lib/browser/device";
-import { appPrefix } from "@/lib/browser/offline";
+import { serverBase } from "@/lib/browser/server";
 import { useBrowser } from "@/lib/browser/state";
 import { toast } from "@/lib/browser/toast";
 import { SiteIcon } from "./ui";
 
 type Suggestion = {
   key: string;
-  kind: "go" | "search" | "history" | "bookmark" | "tab" | "remote" | "ask" | "command";
+  kind: "go" | "search" | "history" | "bookmark" | "tab" | "remote" | "command";
   command?: string;
   title: string;
   detail?: string;
@@ -40,8 +39,6 @@ export function Omnibox({
   onClose,
   onSubmit,
   onSwitchTab,
-  aiOn,
-  onAsk,
   commands,
   onCommand,
   seed = "",
@@ -52,8 +49,6 @@ export function Omnibox({
   onClose: () => void;
   onSubmit: (url: string) => void;
   onSwitchTab: (id: string) => void;
-  aiOn: boolean;
-  onAsk: (query: string) => void;
   commands: PaletteCommand[];
   onCommand: (id: string) => void;
   seed?: string;
@@ -89,7 +84,7 @@ export function Omnibox({
     }
     const ac = new AbortController();
     const timer = setTimeout(() => {
-      fetch(`${appPrefix()}/suggest?q=${encodeURIComponent(query)}`, { signal: ac.signal })
+      fetch(`${serverBase()}/suggest?q=${encodeURIComponent(query)}`, { signal: ac.signal })
         .then((res) => res.json())
         .then((list: unknown) => {
           if (Array.isArray(list)) setRemote(list.filter((item): item is string => typeof item === "string"));
@@ -123,9 +118,6 @@ export function Omnibox({
       lower.length >= 3 && !looksLikeUrl(query)
         ? commands.filter((c) => c.label.toLowerCase().startsWith(lower) || c.keywords.split(" ").some((k) => k.startsWith(lower))).slice(0, 2)
         : [];
-    const ask: Suggestion | null =
-      aiOn && !looksLikeUrl(query) && query.length > 2 ? { key: "ask", kind: "ask", title: query, detail: "Ask Grok · answer with sources", url: "" } : null;
-    if (ask && looksLikeQuestion(query)) out.push(ask);
     if (looksLikeUrl(query)) {
       const url = destination(query) ?? query;
       out.push({ key: "go", kind: "go", title: url.replace(/^https:\/\//, ""), detail: "Go to address", url });
@@ -149,7 +141,6 @@ export function Omnibox({
     if (!looksLikeUrl(query)) {
       out.push({ key: "search", kind: "search", title: query, detail: `Search ${SEARCH_ENGINES[engine].name}`, url: SEARCH_ENGINES[engine].url(query) });
     }
-    if (ask && !looksLikeQuestion(query)) out.push(ask);
     for (const c of commandHits) out.push({ key: `c-${c.id}`, kind: "command", title: c.label, detail: "Command", url: "", command: c.id });
     out.push(...ranked);
     for (const item of remote) {
@@ -158,7 +149,7 @@ export function Omnibox({
       if (out.length >= 10) break;
     }
     return out;
-  }, [query, editingCurrent, history, bookmarks, tabs, remote, engine, aiOn, commands]);
+  }, [query, editingCurrent, history, bookmarks, tabs, remote, engine, commands]);
 
   if (!open) return null;
   const bottom = position === "bottom";
@@ -187,7 +178,7 @@ export function Omnibox({
           name="address"
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder={aiOn ? "Search, ask Grok, or type > for commands" : "Search, type an address, or > for commands"}
+          placeholder="Search, type an address, or > for commands"
           spellCheck={false}
           autoCapitalize="off"
           autoCorrect="off"
@@ -223,16 +214,14 @@ export function Omnibox({
           <button
             type="button"
             onClick={() =>
-              item.kind === "ask" ? onAsk(item.title) : item.kind === "command" && item.command ? onCommand(item.command) : item.tabId ? onSwitchTab(item.tabId) : onSubmit(item.url)
+              item.kind === "command" && item.command ? onCommand(item.command) : item.tabId ? onSwitchTab(item.tabId) : onSubmit(item.url)
             }
             className="mw-press flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 text-left active:bg-stone/70"
           >
             <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${item.kind === "ask" ? "bg-ink text-paper" : "bg-stone text-mute"}`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone text-mute`}
             >
-              {item.kind === "ask" ? (
-                <Sparkles className="h-4 w-4" />
-              ) : item.kind === "command" ? (
+              {item.kind === "command" ? (
                 <Command className="h-4 w-4" />
               ) : item.kind === "search" || item.kind === "remote" ? (
                 <Search className="h-4 w-4" />
@@ -256,7 +245,7 @@ export function Omnibox({
               ) : null}
             </span>
           </button>
-          {item.kind !== "tab" && item.kind !== "command" && item.kind !== "ask" ? (
+          {item.kind !== "tab" && item.kind !== "command" ? (
             <button
               type="button"
               aria-label={`Edit ${item.title}`}

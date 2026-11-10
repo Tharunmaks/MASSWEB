@@ -13,7 +13,7 @@ Mass Web opens web pages for you through a private proxy (ads and trackers block
 ${keyNote}
 ## MCP
 Endpoint: ${origin}/mcp  (Streamable HTTP, JSON-RPC over POST)
-Tools: web_search, open_page, follow_link, find_in_page, submit_form, ask_page
+Tools: web_search, open_page, follow_link, find_in_page, submit_form
 
 ## REST
 GET ${origin}/api/agent/search?q=QUERY
@@ -21,7 +21,6 @@ GET ${origin}/api/agent/read?url=URL[&max_chars=20000][&desktop=1]
 GET ${origin}/api/agent/follow?url=URL&n=LINK_NUMBER
 GET ${origin}/api/agent/find?url=URL&q=TEXT
 POST ${origin}/api/agent/submit  {"url": URL, "form": N, "values": {"field": "value"}}
-POST ${origin}/api/agent/ask     {"url": URL, "question": "..."}
 Add &format=text to any GET for a plain-text answer instead of JSON.
 
 ## Notes

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CORS_HEADERS, preflight } from "@/lib/browser/cors";
 import { decodePage, loadTarget } from "@/lib/browser/proxy";
 
 function json(body: unknown, status = 200, cache = false): Response {
@@ -7,6 +8,7 @@ function json(body: unknown, status = 200, cache = false): Response {
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": cache ? "public, max-age=0, s-maxage=600, stale-while-revalidate=3600" : "no-store",
+      ...CORS_HEADERS,
     },
   });
 }
@@ -14,6 +16,7 @@ function json(body: unknown, status = 200, cache = false): Response {
 export const Route = createFileRoute("/reader")({
   server: {
     handlers: {
+      OPTIONS: () => preflight(),
       GET: async ({ request }) => {
         const url = new URL(request.url).searchParams.get("u") || "";
         const loaded = await loadTarget(new Request(request.url, { method: "GET", headers: request.headers }), url);

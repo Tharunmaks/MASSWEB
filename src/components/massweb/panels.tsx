@@ -40,6 +40,8 @@ import { type SavedArticle, listSaved, removeSaved, saveArticle } from "@/lib/br
 import { type Tab, useBrowser } from "@/lib/browser/state";
 import { toast } from "@/lib/browser/toast";
 import { LANGUAGES } from "@/lib/browser/translate";
+import { STATIC_APP, savedServer } from "@/lib/browser/server";
+import { ServerSettings } from "./server-setup";
 import { Row, Segmented, Sheet, SiteIcon, Toggle } from "./ui";
 
 export type MenuAction =
@@ -65,7 +67,6 @@ export type MenuAction =
   | "external"
   | "settings"
   | "copy"
-  | "ask"
   | "notes"
   | "feeds"
   | "desktop"
@@ -96,7 +97,6 @@ export function MenuSheet({
   dark,
   desktop,
   split,
-  aiOn,
   onAction,
 }: {
   open: boolean;
@@ -107,7 +107,6 @@ export function MenuSheet({
   dark: boolean;
   desktop: boolean;
   split: boolean;
-  aiOn: boolean;
   onAction: (action: MenuAction) => void;
 }) {
   const bookmarked = useBrowser((s) => !!tab?.url && s.bookmarks.some((b) => b.url === tab.url));
@@ -136,21 +135,6 @@ export function MenuSheet({
           <SettingsIcon className="h-5 w-5" />
         </IconButton>
       </div>
-      {page ? (
-        <button
-          type="button"
-          onClick={() => onAction("ask")}
-          className="mw-press mb-3 flex w-full items-center gap-3 rounded-2xl bg-ink p-3.5 text-left text-paper"
-        >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-paper/15">
-            <Sparkles className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-medium">Ask Grok about this page</span>
-            <span className="block truncate text-xs opacity-70">{aiOn ? "Summaries, answers, your Skills, compare tabs" : "Turns on when you publish from Grok"}</span>
-          </span>
-        </button>
-      ) : null}
       {page ? (
         <div className="mb-3 flex items-center gap-3 rounded-2xl bg-stone/70 px-3 py-2">
           <SiteIcon url={tab?.url ?? null} icon={tab?.icon} size={22} />
@@ -602,9 +586,15 @@ export function SettingsSheet({ open, onClose, onAgents }: { open: boolean; onCl
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[15px] font-medium">Use Mass Web from AI agents</span>
-            <span className="block truncate text-xs opacity-70">MCP server and API for Claude, Grok, Mnx and scripts</span>
+            <span className="block truncate text-xs opacity-70">MCP server and API for Mnx, Claude and scripts</span>
           </span>
         </button>
+      ) : null}
+      {STATIC_APP || savedServer() ? (
+        <Section title="Page server">
+          <ServerSettings />
+          <p className="mt-1.5 text-xs text-mute">Your Mass Web server (on Vercel). It loads pages, blocks ads and powers reader mode.</p>
+        </Section>
       ) : null}
       <Section title="Address bar">
         <Segmented
@@ -632,15 +622,6 @@ export function SettingsSheet({ open, onClose, onAgents }: { open: boolean; onCl
         <SwitchRow label="Open articles in Reader" detail="Jump straight to the clean reading view when a page is an article." checked={settings.autoReader} onChange={(autoReader) => set({ autoReader })} />
         <SwitchRow label="Data saver" detail="Images, videos and embeds load only when you tap them." checked={settings.dataSaver} onChange={(dataSaver) => set({ dataSaver })} />
       </Section>
-      <Section title="Grok AI requests per day">
-        <Segmented
-          label="AI daily limit"
-          value={settings.aiDailyLimit}
-          onChange={(aiDailyLimit) => set({ aiDailyLimit })}
-          options={[20, 50, 80, 150, 300].map((n) => ({ value: n, label: String(n) }))}
-        />
-        <p className="mt-1.5 text-xs text-mute">AI uses your Grok key's credits. This cap stops runaway use.</p>
-      </Section>
       <Section title="Translate pages to">
         <select
           value={settings.translateTo}
@@ -667,7 +648,7 @@ export function SettingsSheet({ open, onClose, onAgents }: { open: boolean; onCl
         <p className="mt-1.5 text-xs text-mute">Other tabs sleep to save memory and reload when you open them.</p>
       </Section>
       <Section title="Data">
-        <Row icon={<Download className="h-4 w-4" />} title="Back up everything" detail="Tabs, spaces, bookmarks, notes, feeds, Skills, saved pages" onClick={exportBackup} />
+        <Row icon={<Download className="h-4 w-4" />} title="Back up everything" detail="Tabs, spaces, bookmarks, notes, feeds, saved pages" onClick={exportBackup} />
         <label className="mw-press flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl py-1.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone text-ink">
             <Upload className="h-4 w-4" />
@@ -706,18 +687,16 @@ export function SettingsSheet({ open, onClose, onAgents }: { open: boolean; onCl
 
 export type LinkTarget = { href: string | null; text: string; image: string | null };
 
-export type LinkAction = "tab" | "background" | "incognito" | "preview" | "split" | "copy" | "share" | "image" | "copy-image" | "summarize" | "download";
+export type LinkAction = "tab" | "background" | "incognito" | "preview" | "split" | "copy" | "share" | "image" | "copy-image" | "download";
 
 export function LinkMenu({
   target,
   onClose,
   onAction,
-  aiOn,
 }: {
   target: LinkTarget | null;
   onClose: () => void;
   onAction: (action: LinkAction, url: string) => void;
-  aiOn: boolean;
 }) {
   const href = target?.href ?? null;
   const image = target?.image ?? null;
@@ -731,9 +710,6 @@ export function LinkMenu({
       {href ? <p className="-mt-1 mb-2 truncate text-xs text-mute">{href}</p> : null}
       {href ? (
         <div className="pb-1">
-          {aiOn ? (
-            <Row icon={<Sparkles className="h-4 w-4" />} title="Summarize link" detail="Grok reads it so you don't have to" onClick={() => onAction("summarize", href)} />
-          ) : null}
           <Row icon={<Eye className="h-4 w-4" />} title="Preview" detail="Peek without leaving this page" onClick={() => onAction("preview", href)} />
           <Row icon={<Plus className="h-4 w-4" />} title="Open in new tab" onClick={() => onAction("tab", href)} />
           <Row icon={<Plus className="h-4 w-4 opacity-50" />} title="Open in background tab" onClick={() => onAction("background", href)} />
@@ -804,7 +780,6 @@ async function exportBackup() {
       bookmarks: state.bookmarks,
       sites: state.sites,
       settings: state.settings,
-      skills: state.skills,
       highlights: state.highlights,
       feeds: state.feeds,
     },
