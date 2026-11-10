@@ -9,12 +9,20 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+function text(body: string, status = 200): Response {
+  return new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" } });
+}
+
 async function handle(request: Request, action: string): Promise<Response> {
   const { checkAccess, AgentError } = await import("@/lib/browser/agent.server");
   const denied = checkAccess(request);
-  if (denied) return json({ error: denied.message }, denied.status);
+  const asText = new URL(request.url).searchParams.get("format") !== "json";
+  if (denied) return asText ? text(`Error: ${denied.message}\n`, denied.status) : json({ error: denied.message }, denied.status);
   const tool = ACTIONS[action];
-  if (!tool) return json({ error: `Unknown action '${action}'. Use one of: ${Object.keys(ACTIONS).join(", ")}.` }, 404);
+  if (!tool) {
+    const message = `Unknown action '${action}'. Use one of: ${Object.keys(ACTIONS).join(", ")}.`;
+    return asText ? text(`Error: ${message}\n`, 404) : json({ error: message }, 404);
+  }
   const url = new URL(request.url);
   const args: Record<string, unknown> = Object.fromEntries(url.searchParams);
   if (args.q && !args.query) args.query = args.q;
@@ -29,13 +37,15 @@ async function handle(request: Request, action: string): Promise<Response> {
   const { runTool } = await import("@/lib/browser/agent-tools.server");
   try {
     const out = await runTool(tool, args, request);
-    if (url.searchParams.get("format") === "text") {
+    // Plain text by default (made for AI agents); add format=json for structured data.
+    if (url.searchParams.get("format") !== "json") {
       return new Response(out.text, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" } });
     }
     return json(out.data);
   } catch (error) {
-    if (error instanceof AgentError) return json({ error: error.message }, error.status);
-    return json({ error: error instanceof Error ? error.message : "Something went wrong." }, 500);
+    const message = error instanceof Error ? error.message : "Something went wrong.";
+    const status = error instanceof AgentError ? error.status : 500;
+    return asText ? text(`Error: ${message}\n`, status) : json({ error: message }, status);
   }
 }
 

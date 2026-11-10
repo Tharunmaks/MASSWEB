@@ -16,9 +16,12 @@ Endpoint: ${origin}/mcp  (Streamable HTTP, JSON-RPC over POST)
 Tools: web_search, open_page, open_pages, research, follow_link, find_in_page, submit_form
 
 ## Mass Search
-web_search uses Mass Search, Mass Web's own engine: open sources (Marginalia, Wikipedia, Hacker News, Stack Overflow, optional Brave/Mojeek APIs) merged, plus instant answers. Never Bing or Google.
-GET ${origin}/api/search?q=QUERY[&p=PAGE]   (JSON)
+web_search uses Mass Search, Mass Web's own engine: first the Mnx Index (pages crawled by the Mnx Spiders, our own crawler), then open sources (Marginalia, Wikipedia, Hacker News, Stack Overflow, optional Brave/Mojeek APIs) merged, plus instant answers. Never Bing or Google.
+GET ${origin}/api/search?q=QUERY[&p=PAGE]   (plain text; &format=json for JSON)
 GET ${origin}/search?q=QUERY                (HTML results page)
+
+## Mnx Index (direct)
+The Mnx Spiders' own index answers directly too: https://tharunmakes-mnx-spiders.hf.space/search?q=QUERY (&days=7, &site=example.com).
 
 ## REST
 GET ${origin}/api/agent/search?q=QUERY
@@ -28,7 +31,7 @@ GET ${origin}/api/agent/find?url=URL&q=TEXT
 POST ${origin}/api/agent/submit  {"url": URL, "form": N, "values": {"field": "value"}}
 GET ${origin}/api/agent/open?urls=URL1,URL2,...          (up to 20 pages at once, cached, duplicates dropped)
 GET ${origin}/api/agent/research?q=QUERY[&pages=6][&days=10]   (search + open + dated sources to cite)
-Add &format=text to any GET for a plain-text answer instead of JSON.
+Every answer is plain text. Add &format=json to any GET for JSON instead.
 
 ## Notes
 - Stateless: no cookies or logins. To "click", call follow with the page URL and the link number.

@@ -1,0 +1,59 @@
+name: Mnx Spiders
+
+on:
+  schedule:
+    - cron: "23 */4 * * *"   # crawl: every 4 hours
+    - cron: "41 1 * * *"     # Common Crawl import: daily
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "crawl, import or both"
+        default: "both"
+        type: choice
+        options: [both, crawl, import]
+      wet_files:
+        description: "Common Crawl files to import (about 1,700 pages each)"
+        default: "40"
+      minutes:
+        description: "Minutes to crawl"
+        default: "30"
+
+concurrency:
+  group: mnx-spiders
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  spiders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    defaults:
+      run:
+        working-directory: spider
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: spider/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Run the spiders
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          MAX_INDEX_GB: ${{ vars.MAX_INDEX_GB || '40' }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::Add a Hugging Face write token as the Actions secret HF_TOKEN (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ inputs.mode }}"; WET="${{ inputs.wet_files }}"; MIN="${{ inputs.minutes }}"
+          elif [ "${{ github.event.schedule }}" = "41 1 * * *" ]; then
+            MODE=import; WET=40; MIN=0
+          else
+            MODE=crawl; WET=0; MIN=30
+          fi
+          python -m mnx.run --mode "$MODE" --wet-files "$WET" --minutes "$MIN"

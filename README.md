@@ -20,6 +20,10 @@ Mass Web has its own search engine. It never uses Bing or Google and it doesn't 
 - **Use it anywhere:** `/search?q=...` is a normal results page, `/api/search?q=...` returns JSON, and `/opensearch.xml` lets Chrome, Edge or Firefox add Mass Search as a search engine.
 - **Stronger results (optional):** set `BRAVE_SEARCH_KEY` (Brave Search API), `MOJEEK_API_KEY` (Mojeek API) and/or `MARGINALIA_API_KEY` (free on request from Marginalia; the shared `public` key is often busy) in Vercel's environment variables to add their full independent web indexes.
 
+## Mnx Spiders (Mass Web's own crawler and index)
+
+`spider/` holds Mass Web's own crawler, **MnxSpider**, and the **Mnx Index** it builds. The spiders run on GitHub Actions, read news feeds, crawl outward along links (obeying robots.txt) and import Common Crawl; the index and its search server live on Hugging Face. Mass Search asks the Mnx Index first. Setup and API: [spider/README.md](spider/README.md).
+
 ## Agent tools
 
 `web_search`, `open_page`, `open_pages` (up to 20 pages at once, cached, duplicate stories dropped), `research` (search + open + dated sources to cite, with an optional "last N days" filter), `follow_link`, `find_in_page`, `submit_form`. Every page comes with its URL, published date and fetch date, its heading outline and button labels, and page text is wrapped in markers as untrusted content.

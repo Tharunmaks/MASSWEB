@@ -4,7 +4,7 @@ import { cleanUrl, unwrapRedirect } from "@/lib/browser/destination";
  * Mass Search: Mass Web's own search results.
  *
  * Nothing here touches Bing or Google, and nothing is scraped: every source is an API that
- * allows automated use. Results come from Marginalia's independent index, Wikipedia,
+ * allows automated use. Results come first from the Mnx Index (our own spiders' index), then Marginalia's independent index, Wikipedia,
  * DuckDuckGo Instant Answers, Hacker News and Stack Overflow, plus Brave's and Mojeek's
  * independent indexes through their official APIs when BRAVE_SEARCH_KEY / MOJEEK_API_KEY
  * are set. Lists are merged with reciprocal-rank fusion and topped with Mass Web's own
@@ -178,6 +178,28 @@ const stackExchange: Engine = {
   },
 };
 
+/** The Mnx Index: Mass Web's own index, built by the Mnx Spiders (see spider/ in the repo). */
+const MNX_INDEX = (process.env.MNX_INDEX_URL || "https://tharunmakes-mnx-spiders.hf.space").replace(/\/+$/, "");
+const mnxIndex: Engine = {
+  name: "Mnx Index",
+  async run(query, page) {
+    if (MNX_INDEX === "off") return [];
+    const data = await getJson<{ results?: { url: string; title: string; snippet: string; published?: string }[] }>(
+      `${MNX_INDEX}/search?q=${encodeURIComponent(query)}&n=10&page=${page}&format=json`,
+      {},
+      3500,
+    );
+    const hits: Hit[] = [];
+    for (const item of data.results || []) {
+      const url = normalizeHit(item.url);
+      if (!url) continue;
+      const date = item.published ? `${item.published.slice(0, 10)} · ` : "";
+      hits.push({ title: item.title || url, url, snippet: `${date}${item.snippet || ""}`.slice(0, 320) });
+    }
+    return hits;
+  },
+};
+
 /** Marginalia: an independent index that favours small, text-heavy sites. Free "public" key, or MARGINALIA_API_KEY. */
 const marginalia: Engine = {
   name: "Marginalia",
@@ -213,9 +235,9 @@ const wikipedia: Engine = {
   },
 };
 
-const ENGINES: Engine[] = [brave, mojeek, marginalia, wikipedia, instantLinks, hackerNews, stackExchange];
+const ENGINES: Engine[] = [mnxIndex, brave, mojeek, marginalia, wikipedia, instantLinks, hackerNews, stackExchange];
 /** Lower weight = a vote from this engine counts for less in the merged ranking. */
-const WEIGHT: Record<string, number> = { Brave: 1, Mojeek: 0.9, Marginalia: 0.75, Wikipedia: 0.7, "Instant Answers": 1.2, "Hacker News": 0.4, "Stack Overflow": 0.4 };
+const WEIGHT: Record<string, number> = { "Mnx Index": 1.3, Brave: 1, Mojeek: 0.9, Marginalia: 0.75, Wikipedia: 0.7, "Instant Answers": 1.2, "Hacker News": 0.4, "Stack Overflow": 0.4 };
 
 function fuse(lists: { name: string; hits: Hit[] }[]): Source[] {
   const scores = new Map<string, { score: number; hit: Hit; engines: Set<string>; snippetLen: number }>();

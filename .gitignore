@@ -10,3 +10,5 @@ artifacts/
 .env.*
 *.log
 dist-pages/
+spider/out/
+__pycache__/

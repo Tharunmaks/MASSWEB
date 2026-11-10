@@ -1,0 +1,87 @@
+# Feeds the Mnx Spiders read every run for fresh pages. One URL per line.
+# World and India news
+https://feeds.bbci.co.uk/news/world/rss.xml
+https://feeds.bbci.co.uk/news/technology/rss.xml
+https://feeds.bbci.co.uk/news/science_and_environment/rss.xml
+https://feeds.bbci.co.uk/news/business/rss.xml
+https://www.theguardian.com/world/rss
+https://www.theguardian.com/technology/rss
+https://www.theguardian.com/science/rss
+https://rss.nytimes.com/services/xml/rss/nyt/World.xml
+https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml
+https://rss.nytimes.com/services/xml/rss/nyt/Science.xml
+https://feeds.npr.org/1001/rss.xml
+https://www.aljazeera.com/xml/rss/all.xml
+https://rss.dw.com/rdf/rss-en-all
+https://www.france24.com/en/rss
+https://www.cbsnews.com/latest/rss/main
+https://feeds.washingtonpost.com/rss/world
+https://www.cnbc.com/id/100003114/device/rss/rss.html
+https://www.thehindu.com/news/national/feeder/default.rss
+https://www.thehindu.com/sci-tech/technology/feeder/default.rss
+https://indianexpress.com/feed/
+https://timesofindia.indiatimes.com/rssfeedstopstories.cms
+https://feeds.feedburner.com/ndtvnews-top-stories
+https://www.livemint.com/rss/news
+https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml
+https://www.indiatoday.in/rss/home
+https://economictimes.indiatimes.com/rssfeedsdefault.cms
+https://www.moneycontrol.com/rss/latestnews.xml
+# Technology and phones
+https://techcrunch.com/feed/
+https://www.theverge.com/rss/index.xml
+https://feeds.arstechnica.com/arstechnica/index
+https://www.wired.com/feed/rss
+https://www.engadget.com/rss.xml
+https://www.technologyreview.com/feed/
+https://www.tomshardware.com/feeds/all
+https://www.gsmarena.com/rss-news-reviews.php3
+https://www.androidauthority.com/feed/
+https://www.androidpolice.com/feed/
+https://9to5google.com/feed/
+https://9to5mac.com/feed/
+https://www.xda-developers.com/feed/
+https://www.91mobiles.com/hub/feed/
+https://hnrss.org/frontpage
+https://lwn.net/headlines/rss
+# AI and research
+https://arxiv.org/rss/cs.AI
+https://arxiv.org/rss/cs.CL
+https://arxiv.org/rss/cs.CV
+https://arxiv.org/rss/cs.LG
+https://huggingface.co/blog/feed.xml
+https://openai.com/news/rss.xml
+https://blog.google/technology/ai/rss/
+https://www.marktechpost.com/feed/
+https://simonwillison.net/atom/everything/
+https://news.mit.edu/rss/feed
+# Science and space
+https://www.nature.com/nature.rss
+https://www.sciencedaily.com/rss/all.xml
+https://phys.org/rss-feed/
+https://www.quantamagazine.org/feed/
+https://www.sciencenews.org/feed
+https://www.space.com/feeds/all
+https://www.nasa.gov/feed/
+https://www.who.int/rss-feeds/news-english.xml
+# Developers
+https://github.blog/feed/
+https://stackoverflow.blog/feed/
+https://developer.mozilla.org/en-US/blog/rss.xml
+https://www.smashingmagazine.com/feed/
+https://css-tricks.com/feed/
+https://dev.to/feed
+https://blog.rust-lang.org/feed.xml
+https://go.dev/blog/feed.atom
+https://nodejs.org/en/feed/blog.xml
+https://react.dev/rss.xml
+https://feeds.feedburner.com/PythonInsider
+# 3D, games and creative
+https://www.blender.org/feed/
+https://www.cgchannel.com/feed/
+https://80.lv/feed/
+https://www.polygon.com/rss/index.xml
+https://www.pcgamer.com/rss/
+# Sport
+https://www.espn.com/espn/rss/news
+https://www.espncricinfo.com/rss/content/story/feeds/0.xml

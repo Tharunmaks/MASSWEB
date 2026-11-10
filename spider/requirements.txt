@@ -1,0 +1,4 @@
+trafilatura==2.3.1
+warcio==1.8.2
+httpx==0.28.1
+huggingface_hub==2.4.0

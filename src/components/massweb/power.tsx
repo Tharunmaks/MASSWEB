@@ -425,9 +425,9 @@ export function AgentAccessSheet({ open, onClose }: { open: boolean; onClose: ()
   const mcp = `${origin}/mcp`;
   const config = JSON.stringify({ mcpServers: { "mass-web": { type: "http", url: mcp } } }, null, 2);
   const examples = [
-    { label: "Search", value: `${origin}/api/agent/search?q=kochi+metro&format=text` },
-    { label: "Read a page", value: `${origin}/api/agent/read?url=en.wikipedia.org/wiki/Kerala&format=text` },
-    { label: "Click link 5", value: `${origin}/api/agent/follow?url=news.ycombinator.com&n=5&format=text` },
+    { label: "Search", value: `${origin}/api/agent/search?q=kochi+metro` },
+    { label: "Read a page", value: `${origin}/api/agent/read?url=en.wikipedia.org/wiki/Kerala` },
+    { label: "Click link 5", value: `${origin}/api/agent/follow?url=news.ycombinator.com&n=5` },
     { label: "Guide for AIs", value: `${origin}/llms.txt` },
   ];
   const Copyable = ({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) => (
