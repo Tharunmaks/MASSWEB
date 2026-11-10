@@ -46,8 +46,8 @@ jobs:
           MAX_INDEX_GB: ${{ vars.MAX_INDEX_GB || '40' }}
         run: |
           if [ -z "$HF_TOKEN" ]; then
-            echo "::error::Add a Hugging Face write token as the Actions secret HF_TOKEN (Settings → Secrets and variables → Actions)."
-            exit 1
+            echo "::warning::The spiders are waiting for setup: add a Hugging Face write token as the Actions secret HF_TOKEN (Settings → Secrets and variables → Actions)."
+            exit 0
           fi
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MODE="${{ inputs.mode }}"; WET="${{ inputs.wet_files }}"; MIN="${{ inputs.minutes }}"
