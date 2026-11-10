@@ -18,7 +18,7 @@ Mass Web has its own search engine. It never uses Bing or Google and it doesn't 
 - **Sources:** Marginalia (independent index), Wikipedia, DuckDuckGo Instant Answers, Hacker News and Stack Overflow, merged into one ranked list.
 - **Instant answers:** calculator, definitions (`define word`), and a Wikipedia knowledge card.
 - **Use it anywhere:** `/search?q=...` is a normal results page, `/api/search?q=...` returns JSON, and `/opensearch.xml` lets Chrome, Edge or Firefox add Mass Search as a search engine.
-- **Stronger results (optional):** set `BRAVE_SEARCH_KEY` (Brave Search API) and/or `MOJEEK_API_KEY` (Mojeek API) in Vercel's environment variables to add their full independent web indexes.
+- **Stronger results (optional):** set `BRAVE_SEARCH_KEY` (Brave Search API), `MOJEEK_API_KEY` (Mojeek API) and/or `MARGINALIA_API_KEY` (free on request from Marginalia; the shared `public` key is often busy) in Vercel's environment variables to add their full independent web indexes.
 
 ## Agent tools
 

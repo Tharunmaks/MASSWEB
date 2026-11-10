@@ -178,17 +178,18 @@ const stackExchange: Engine = {
   },
 };
 
-/** Marginalia: an independent index that favours small, text-heavy sites. */
+/** Marginalia: an independent index that favours small, text-heavy sites. Free "public" key, or MARGINALIA_API_KEY. */
 const marginalia: Engine = {
   name: "Marginalia",
   async run(query, page) {
-    if (page > 2) return [];
+    if (page > 3) return [];
     const data = await getJson<{ results?: { url: string; title: string; description: string }[] }>(
-      `https://api.marginalia.nu/public/search/${encodeURIComponent(query)}?count=${page === 1 ? 10 : 20}`,
+      `https://api2.marginalia-search.com/search?query=${encodeURIComponent(query)}&count=10&page=${page}&timeout=3000`,
+      { "API-Key": process.env.MARGINALIA_API_KEY || "public" },
+      4500,
     );
-    const items = (data.results || []).slice(page === 1 ? 0 : 10);
     const hits: Hit[] = [];
-    for (const item of items) {
+    for (const item of data.results || []) {
       const url = normalizeHit(item.url);
       if (url) hits.push({ title: item.title || url, url, snippet: (item.description || "").slice(0, 320) });
     }
