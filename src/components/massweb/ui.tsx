@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { hostOf, isMassSearch } from "@/lib/browser/destination";
+import { needsServer, serverBase } from "@/lib/browser/server";
 import { useToast } from "@/lib/browser/toast";
 
 /** Keeps something mounted for its exit animation after `open` turns false. */
@@ -112,9 +113,8 @@ export function Sheet({
 /** Site icon: the page's own icon, then Google's favicon service, then a letter tile. */
 export function SiteIcon({ url, icon, size = 16, className = "" }: { url: string | null; icon?: string; size?: number; className?: string }) {
   const host = isMassSearch(url) ? "" : hostOf(url);
-  const sources = [icon, host ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=${size > 24 ? 128 : 64}` : ""].filter(
-    (src): src is string => !!src,
-  );
+  // Mass Web's own logo service (the page server asks the site itself); the page's declared icon is the backup.
+  const sources = [host && !needsServer() ? `${serverBase()}/icon?host=${encodeURIComponent(host)}` : "", icon].filter((src): src is string => !!src);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => setAttempt(0), [icon, host]);
   const src = sources[attempt];

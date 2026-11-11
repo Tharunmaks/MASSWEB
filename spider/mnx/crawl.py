@@ -220,8 +220,13 @@ class Spider:
             # The feed's date is the most reliable; then the page's own declared publish date.
             date = published or iso(doc.get("date") or "")
             lang = "en" if english_ratio(body) >= 0.12 else ""
-            if len(body) >= 300 and title and not is_spammy(final, title, body):
-                if self.shard.add(url=final, title=title, body=body, published=date, crawled=now_iso(), lang=lang, source="mnxspider", quality=self.ranks.quality(host)):
+            is_home = final.rstrip("/").count("/") == 2
+            if is_home:
+                # A site's front page is worth knowing even when it has little text: keep its description.
+                body = "\n".join(x for x in [(doc.get("excerpt") or "").strip(), body] if x)
+            if len(body) >= (40 if is_home else 300) and title and not is_spammy(final, title, body):
+                image = normalize_url(urljoin(final, (doc.get("image") or "").strip())) or "" if doc.get("image") else ""
+                if self.shard.add(url=final, title=title, body=body, published=date, crawled=now_iso(), lang=lang, source="mnxspider", quality=self.ranks.quality(host), image=image):
                     self.stats["indexed"] += 1
         # Follow links outward: same-site links one level deep, other sites for discovery.
         if depth < 2:
@@ -257,7 +262,7 @@ class Spider:
 
             await asyncio.gather(*(guarded(self.read_feed(client, f)) for f in feeds))
             for url in frontier:
-                self.push(url, depth=1)
+                self.push(url, depth=1, boost=0.6 if url.rstrip("/").count("/") == 2 else 0.0)
             print(f"[spider] feeds read: {len(feeds)}; queue: {len(self.queue):,}")
 
             active: set[asyncio.Task] = set()
@@ -323,9 +328,16 @@ def save_lines(path: str, lines) -> None:
             fh.write(line + "\n")
 
 
-def run(shard_path: str, ranks: Ranks, feeds_file: str, state_dir: str, budget_s: float, max_pages: int) -> dict:
+def run(shard_path: str, ranks: Ranks, feeds_file: str, state_dir: str, budget_s: float, max_pages: int, homes: int = 3000) -> dict:
     seen = set(load_lines(os.path.join(state_dir, "seen.txt.gz")))
     frontier = load_lines(os.path.join(state_dir, "frontier.txt.gz"))
+    # Walk down the list of the world's top sites, a few thousand front pages per run.
+    pos_file = os.path.join(state_dir, "tranco_pos.txt")
+    pos = int((load_lines(pos_file) or ["0"])[0])
+    top = sorted(ranks.ranks.items(), key=lambda kv: kv[1])
+    batch = top[pos : pos + homes]
+    frontier = [f"https://{domain}/" for domain, _ in batch] + frontier
+    save_lines(pos_file, [str(pos + len(batch) if pos + len(batch) < min(len(top), 300_000) else 0)])
     feeds = load_lines(feeds_file)
     shard = Shard(shard_path)
     spider = Spider(ranks, shard, seen, budget_s, max_pages)

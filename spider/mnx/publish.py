@@ -7,7 +7,7 @@ import os
 from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
 from huggingface_hub.utils import EntryNotFoundError, RepositoryNotFoundError
 
-STATE_FILES = ["seen.txt.gz", "frontier.txt.gz", "cc_done.txt"]
+STATE_FILES = ["seen.txt.gz", "frontier.txt.gz", "cc_done.txt", "tranco_pos.txt"]
 
 
 class Hub:

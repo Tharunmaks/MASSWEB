@@ -9,10 +9,9 @@ export const Route = createFileRoute("/search")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const query = (url.searchParams.get("q") || "").trim();
-        const page = Number(url.searchParams.get("p") || "1") || 1;
-        const [{ massSearch }, { renderSearchPage }] = await Promise.all([import("@/lib/browser/masssearch.server"), import("@/lib/browser/search-page.server")]);
-        const data = await massSearch(query, request, page);
-        return new Response(renderSearchPage(data, { dark: url.searchParams.get("dark") === "1", embedded: false }), {
+        const { searchPageFor } = await import("@/lib/browser/search-page.server");
+        const html = await searchPageFor(url.searchParams, request, { dark: url.searchParams.get("dark") === "1", embedded: false });
+        return new Response(html, {
           headers: {
             "content-type": "text/html; charset=utf-8",
             "cache-control": query ? "public, max-age=0, s-maxage=120, stale-while-revalidate=600" : "public, max-age=3600",

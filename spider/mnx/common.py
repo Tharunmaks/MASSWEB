@@ -15,7 +15,7 @@ import time
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 USER_AGENT = "MnxSpider/1.0 (+https://github.com/Tharunmaks/MASSWEB/blob/main/spider/README.md)"
-BODY_CHARS = 4000  # text kept per page; agents open the live page for more
+BODY_CHARS = 2400  # text kept per page (smaller = more of the web fits); agents open the live page for more
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pages(
@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS pages(
   lang TEXT NOT NULL DEFAULT '',
   source TEXT NOT NULL DEFAULT '',
   quality REAL NOT NULL DEFAULT 0,
-  digest TEXT NOT NULL DEFAULT ''
+  digest TEXT NOT NULL DEFAULT '',
+  image TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS pages_digest ON pages(digest);
 CREATE INDEX IF NOT EXISTS pages_host ON pages(host);
@@ -54,7 +55,7 @@ class Shard:
         self.digests: set[str] = {row[0] for row in self.db.execute("SELECT digest FROM pages")}
         self.per_host: dict[str, int] = {}
 
-    def add(self, *, url: str, title: str, body: str, published: str = "", crawled: str = "", lang: str = "", source: str = "", quality: float = 0.0, host_cap: int = 0) -> bool:
+    def add(self, *, url: str, title: str, body: str, published: str = "", crawled: str = "", lang: str = "", source: str = "", quality: float = 0.0, host_cap: int = 0, image: str = "") -> bool:
         host = host_of(url)
         if host_cap and self.per_host.get(host, 0) >= host_cap:
             return False
@@ -65,8 +66,8 @@ class Shard:
             return False
         body = body[:BODY_CHARS]
         cur = self.db.execute(
-            "INSERT OR IGNORE INTO pages(url,host,title,body,published,crawled,lang,source,quality,digest) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (url, host, title[:300], body, published, crawled, lang, source, quality, digest),
+            "INSERT OR IGNORE INTO pages(url,host,title,body,published,crawled,lang,source,quality,digest,image) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            (url, host, title[:300], body, published, crawled, lang, source, quality, digest, image[:500]),
         )
         if not cur.rowcount:
             return False

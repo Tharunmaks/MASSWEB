@@ -4,7 +4,7 @@ Mass Web's own web crawler and search index, built for AI agents first.
 
 How it works, the same way big search engines do:
 
-1. **Crawl.** `MnxSpider` reads news and blog feeds for fresh pages, then follows links outward to discover new pages and new sites. It also imports pages from [Common Crawl](https://commoncrawl.org), the free public crawl of billions of pages.
+1. **Crawl.** `MnxSpider` reads news and blog feeds for fresh pages, visits the front pages of the world's top sites (a few thousand per run, working down the Tranco list), then follows links outward to discover new pages and new sites. It also imports pages from [Common Crawl](https://commoncrawl.org), the free public crawl of billions of pages.
 2. **Index.** Each page's main text (no menus, ads or cookie banners) is stored with its URL, title, published date and crawl date in SQLite full-text "shards" with BM25 ranking.
 3. **Answer.** The search server merges all shards and answers in plain text, so AI agents (Claude, ChatGPT, Gemini, Grok, Mnx) can read results directly.
 
@@ -21,7 +21,7 @@ Disallow: /
 
 | Part | Where |
 | --- | --- |
-| Spiders | GitHub Actions: `.github/workflows/spiders.yml` (crawl every 4 hours, Common Crawl import daily) |
+| Spiders | GitHub Actions: `.github/workflows/spiders.yml` (crawl every 4 hours, Common Crawl import twice a day) |
 | Index | Private Hugging Face dataset `<you>/mnx-index` (shards + the spiders' memory) |
 | Search server | Hugging Face Space `<you>/mnx-spiders` (Docker, free CPU) |
 | Mass Search | Uses the index first, through `MNX_INDEX_URL` (defaults to `https://tharunmakes-mnx-spiders.hf.space`) |
@@ -39,9 +39,10 @@ Optional repository variable `MAX_INDEX_GB` (default 40): when the index grows p
 ```
 GET /search?q=QUERY            plain text: numbered results with URL, published date, crawl date, snippet
     &days=7  &site=bbc.co.uk  &n=20  &page=2  &format=json
+GET /images?q=QUERY            pictures: image URL and the page each came from
 GET /page?url=URL              stored text of one page
 GET /stats                     size and freshness
-POST /mcp                      MCP tools: search, get_page
+POST /mcp                      MCP tools: search, image_search, get_page
 GET /llms.txt                  guide for AI agents
 ```
 

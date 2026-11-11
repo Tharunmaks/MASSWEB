@@ -13,12 +13,14 @@ Mass Web opens web pages for you through a private proxy (ads and trackers block
 ${keyNote}
 ## MCP
 Endpoint: ${origin}/mcp  (Streamable HTTP, JSON-RPC over POST)
-Tools: web_search, open_page, open_pages, research, follow_link, find_in_page, submit_form
+Tools: web_search, image_search, open_page, open_pages, research, follow_link, find_in_page, submit_form
 
 ## Mass Search
 web_search uses Mass Search, Mass Web's own engine: first the Mnx Index (pages crawled by the Mnx Spiders, our own crawler), then open sources (Marginalia, Wikipedia, Hacker News, Stack Overflow, optional Brave/Mojeek APIs) merged, plus instant answers. Never Bing or Google.
 GET ${origin}/api/search?q=QUERY[&p=PAGE]   (plain text; &format=json for JSON)
-GET ${origin}/search?q=QUERY                (HTML results page)
+GET ${origin}/api/images?q=QUERY[&p=PAGE]   (pictures: image URL, source page, size, author, licence)
+GET ${origin}/search?q=QUERY[&t=images]     (HTML results page)
+GET ${origin}/icon?host=example.com         (a site's logo)
 
 ## Mnx Index (direct)
 The Mnx Spiders' own index answers directly too: https://tharunmakes-mnx-spiders.hf.space/search?q=QUERY (&days=7, &site=example.com).

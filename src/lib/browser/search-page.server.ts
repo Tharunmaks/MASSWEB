@@ -1,4 +1,4 @@
-import type { SearchResult, Source } from "@/lib/browser/masssearch.server";
+import type { ImageResult, SearchResult, Source } from "@/lib/browser/masssearch.server";
 
 /** The Mass Search results page, as HTML. Works standalone (/search) and inside Mass Web (mass://search). */
 
@@ -6,8 +6,8 @@ function esc(value: string): string {
   return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] as string);
 }
 
-function searchHref(query: string, page: number, embedded: boolean): string {
-  const qs = `q=${encodeURIComponent(query)}${page > 1 ? `&p=${page}` : ""}`;
+function searchHref(query: string, page: number, embedded: boolean, images = false): string {
+  const qs = `q=${encodeURIComponent(query)}${images ? "&t=images" : ""}${page > 1 ? `&p=${page}` : ""}`;
   return embedded ? `mass://search?${qs}` : `/search?${qs}`;
 }
 
@@ -31,21 +31,28 @@ function crumb(url: string): string {
   }
 }
 
-function resultItem(r: Source, query: string): string {
-  const letter = r.host.replace(/^www\./, "").slice(0, 1).toUpperCase();
+/** A site's logo from Mass Web's own /icon service, with its first letter underneath as the fallback. */
+function logo(host: string, origin: string): string {
+  const letter = host.replace(/^www\./, "").slice(0, 1).toUpperCase();
+  return `<span class="fav" aria-hidden="true">${esc(letter)}<img src="${esc(origin)}/icon?host=${encodeURIComponent(host)}" alt="" loading="lazy" decoding="async" onload="this.parentNode.classList.add('ok')" onerror="this.remove()"></span>`;
+}
+
+function resultItem(r: Source, query: string, origin: string): string {
   return `<li class="r">
   <a class="rl" href="${esc(r.url)}">
-    <div class="rh"><span class="fav" aria-hidden="true">${esc(letter)}</span><span class="crumb">${esc(crumb(r.url))}</span></div>
+    <div class="rh">${logo(r.host, origin)}<span class="crumb">${esc(crumb(r.url))}</span></div>
     <h3>${highlight(r.title, query)}</h3>
     ${r.snippet ? `<p>${highlight(r.snippet, query)}</p>` : ""}
   </a>
 </li>`;
 }
 
-export function renderSearchPage(data: SearchResult, options: { dark: boolean; embedded: boolean }): string {
-  const { query, page, results, card, instant, related, engines } = data;
+export function renderSearchPage(data: SearchResult, options: { dark: boolean; embedded: boolean; origin: string; images?: ImageResult }): string {
+  const { query, page, results, card, instant, related } = data;
+  const { origin, images } = options;
+  const engines = images ? images.engines : data.engines;
   const { dark, embedded } = options;
-  const title = query ? `${query} - Mass Search` : "Mass Search";
+  const title = query ? `${query} - Mass Search${options.images ? " images" : ""}` : "Mass Search";
   const canonical = searchHref(query, page, false);
 
   const instantHtml = instant
@@ -68,7 +75,7 @@ export function renderSearchPage(data: SearchResult, options: { dark: boolean; e
     : "";
 
   const list = results.length
-    ? `<ol class="results">${results.map((r) => resultItem(r, query)).join("")}</ol>`
+    ? `<ol class="results">${results.map((r) => resultItem(r, query, origin)).join("")}</ol>`
     : query
       ? `<section class="empty"><h2>No results${page > 1 ? " on this page" : ""}</h2><p>${
           engines.length ? "Try different words, or fewer of them." : "The search indexes didn't answer in time. Pull down to try again."
@@ -81,10 +88,29 @@ export function renderSearchPage(data: SearchResult, options: { dark: boolean; e
         .join("")}</div></section>`
     : "";
 
+  const shown = images ? images.images.length : results.length;
   const pager = query
-    ? `<nav class="pager">${page > 1 ? `<a class="btn" href="${esc(searchHref(query, page - 1, embedded))}">‹ Previous</a>` : "<span></span>"}<span class="pn">Page ${page}</span>${
-        results.length >= 6 && page < 5 ? `<a class="btn" href="${esc(searchHref(query, page + 1, embedded))}">Next ›</a>` : "<span></span>"
+    ? `<nav class="pager">${page > 1 ? `<a class="btn" href="${esc(searchHref(query, page - 1, embedded, !!images))}">‹ Previous</a>` : "<span></span>"}<span class="pn">Page ${page}</span>${
+        shown >= 6 && page < 5 ? `<a class="btn" href="${esc(searchHref(query, page + 1, embedded, !!images))}">Next ›</a>` : "<span></span>"
       }</nav>`
+    : "";
+
+  const tabs = query
+    ? `<nav class="tabs"><a class="tab${images ? "" : " on"}" href="${esc(searchHref(query, 1, embedded))}">All</a><a class="tab${images ? " on" : ""}" href="${esc(searchHref(query, 1, embedded, true))}">Images</a></nav>`
+    : "";
+
+  const grid = images
+    ? images.images.length
+      ? `<div class="grid">${images.images
+          .map(
+            (im) => `<a class="im" href="${esc(im.page)}" title="${esc(im.title)}">
+  <img src="${esc(im.thumb)}" alt="${esc(im.title)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.im').remove()">
+  <span class="cap">${logo(im.host, origin)}<span class="ct">${esc(im.title || im.host)}</span></span>
+  <span class="src">${esc(im.host)}${im.license ? ` · ${esc(im.license)}` : ""}</span>
+</a>`,
+          )
+          .join("")}</div>`
+      : `<section class="empty"><h2>No images${page > 1 ? " on this page" : ""}</h2><p>Try different words, or fewer of them.</p></section>`
     : "";
 
   const home = !query
@@ -100,7 +126,7 @@ export function renderSearchPage(data: SearchResult, options: { dark: boolean; e
     var h=a.getAttribute("href");if(!h)return;
     e.preventDefault();post({type:"open",href:h});
   },true);
-  var f=document.getElementById("f");if(f)f.addEventListener("submit",function(e){e.preventDefault();var q=f.q.value.trim();if(q)post({type:"open",href:"mass://search?q="+encodeURIComponent(q)})});
+  var f=document.getElementById("f");if(f)f.addEventListener("submit",function(e){e.preventDefault();var q=f.q.value.trim();if(q)post({type:"open",href:"mass://search?q="+encodeURIComponent(q)+(f.t?"&t=images":"")})});
   document.addEventListener("selectionchange",function(){var s=String(document.getSelection()||"").trim();post({type:"selection",text:s.slice(0,2000)})});
 })();`
     : `(function(){var f=document.getElementById("f");if(f)f.q.focus();})();`;
@@ -144,7 +170,20 @@ ol.results{list-style:none;margin:6px 0 0;padding:0}
 .rl:active{opacity:.7}
 .rh{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);min-width:0}
 .crumb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fav{width:20px;height:20px;border-radius:6px;background:var(--stone);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--ink);flex:none}
+.fav{position:relative;width:20px;height:20px;border-radius:6px;background:var(--stone);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--ink);flex:none;overflow:hidden}
+.fav img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0}
+.fav.ok{background:transparent;color:transparent}.fav.ok img{opacity:1}
+.tabs{display:flex;gap:6px;margin:12px 0 0}
+.tab{padding:7px 16px;border-radius:999px;font-size:14px;font-weight:500;color:var(--mute)}
+.tab.on{background:var(--ink);color:var(--bg)}
+.grid{columns:2;column-gap:10px;margin-top:8px}
+@media(min-width:560px){.grid{columns:3}}
+.im{display:block;break-inside:avoid;margin:0 0 12px}
+.im>img{display:block;width:100%;height:auto;min-height:60px;max-height:320px;object-fit:cover;border-radius:14px;background:var(--stone)}
+.cap{display:flex;align-items:center;gap:6px;margin-top:6px;min-width:0}
+.cap .fav{width:16px;height:16px;border-radius:5px;font-size:9px}
+.ct{font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src{display:block;font-size:11.5px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 h3{margin:5px 0 3px;font-size:17px;line-height:1.3;font-weight:500;color:var(--cobalt);letter-spacing:-.005em}
 h3 b,p b{font-weight:600}
 .rl p{margin:0;font-size:14px;line-height:1.45;color:var(--ink);opacity:.82;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -168,18 +207,34 @@ footer{margin-top:28px;text-align:center;font-size:12px;color:var(--mute)}
 <form id="f" method="get" action="/search" role="search">
   <span class="m" aria-hidden="true">M</span>
   <input name="q" type="search" value="${esc(query)}" placeholder="Search the web" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search">
+  ${images ? '<input type="hidden" name="t" value="images">' : ""}
   <button type="submit">Search</button>
 </form>
 ${home}
-${query ? `<div class="meta"><span>${results.length ? `${results.length} results` : ""}${engines.length ? ` · ${engines.join(", ")}` : ""}</span><span>${(data.took / 1000).toFixed(2)}s</span></div>` : ""}
-${instantHtml}
+${tabs}
+${query ? `<div class="meta"><span>${shown ? `${shown} ${images ? "images" : "results"}` : ""}${engines.length ? ` · ${engines.join(", ")}` : ""}</span><span>${((images ? images.took : data.took) / 1000).toFixed(2)}s</span></div>` : ""}
+${images ? grid : `${instantHtml}
 ${cardHtml}
 ${list}
-${relatedHtml}
+${relatedHtml}`}
 ${pager}
 <footer>Mass Search · open sources, no ads, no tracking</footer>
 </main>
 <script>${bridge}</script>
 </body>
 </html>`;
+}
+
+/** Run the search (web or images) and render the page. Shared by /search and mass://search. */
+export async function searchPageFor(params: URLSearchParams, request: Request, options: { dark: boolean; embedded: boolean }): Promise<string> {
+  const { massSearch, massImages } = await import("@/lib/browser/masssearch.server");
+  const query = (params.get("q") || "").trim();
+  const page = Number(params.get("p") || "1") || 1;
+  const origin = new URL(request.url).origin;
+  if (params.get("t") === "images" && query) {
+    const images = await massImages(query, page);
+    const shell: SearchResult = { query: images.query, page: images.page, results: [], card: null, instant: null, related: [], engines: [], took: images.took };
+    return renderSearchPage(shell, { ...options, origin, images });
+  }
+  return renderSearchPage(await massSearch(query, request, page), { ...options, origin });
 }

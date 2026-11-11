@@ -596,10 +596,8 @@ export async function proxyRequest(request: Request): Promise<Response> {
     // Mass Web's own search results page.
     const search = new URL(picked);
     const query = search.searchParams.get("q") || "";
-    const page = Number(search.searchParams.get("p") || "1") || 1;
-    const [{ massSearch }, { renderSearchPage }] = await Promise.all([import("@/lib/browser/masssearch.server"), import("@/lib/browser/search-page.server")]);
-    const data = await massSearch(query, request, page);
-    return htmlResponse(renderSearchPage(data, { dark, embedded: true }), 200, {
+    const { searchPageFor } = await import("@/lib/browser/search-page.server");
+    return htmlResponse(await searchPageFor(search.searchParams, request, { dark, embedded: true }), 200, {
       "cache-control": query && !fresh ? "public, max-age=0, s-maxage=120, stale-while-revalidate=600" : "no-store",
       "x-mw-final-url": picked,
       "x-mw-status": "200",

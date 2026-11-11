@@ -2,6 +2,7 @@
 
 Every answer is plain text by default (add format=json for JSON). Endpoints:
   GET /search?q=...&n=10&page=1&days=7&site=example.com
+  GET /images?q=...          pictures with their source pages
   GET /page?url=...          the stored text of one page
   GET /stats                 how big the index is
   POST /mcp                  the same as MCP tools (search, get_page)
@@ -170,6 +171,24 @@ def page(request: Request):
     return PlainTextResponse(page_text(hit) + "\n")
 
 
+def images_text(q: str, items: list[dict]) -> str:
+    lines = [f'Mnx Index: {len(items)} images for "{q}"', UNTRUSTED, ""]
+    for i, item in enumerate(items, 1):
+        lines += [f"[{i}] {item['title']}", f"Image: {item['image']}", f"Page: {item['page']}" + (f" | Published: {item['published'][:10]}" if item["published"] else ""), ""]
+    if not items:
+        lines.append("No images yet for this. The spiders collect each crawled page's main picture.")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+@app.get("/images")
+def images(request: Request):
+    q = request.query_params.get("q", "").strip()
+    items = index.images(q, clamp(request.query_params.get("n"), 1, 60, 20)) if q else []
+    if request.query_params.get("format") == "json":
+        return JSONResponse({"query": q, "images": items})
+    return PlainTextResponse(images_text(q, items))
+
+
 @app.get("/stats")
 def stats(request: Request):
     data = index.stats()
@@ -196,9 +215,10 @@ The Mnx Spiders crawl the web (and import Common Crawl) into this index. Answers
 
 GET {base}/search?q=QUERY            numbered results: title, URL, published date, crawled date, snippet
     &n=10 (max 50)  &page=2  &days=7 (only pages published in the last N days)  &site=example.com  &format=json
+GET {base}/images?q=QUERY            pictures: image URL + the page it came from
 GET {base}/page?url=URL              stored text of one page
 GET {base}/stats                     index size and freshness
-POST {base}/mcp                      MCP (Streamable HTTP, JSON-RPC): tools search, get_page
+POST {base}/mcp                      MCP (Streamable HTTP, JSON-RPC): tools search, image_search, get_page
 
 Notes
 - {UNTRUSTED}
@@ -233,6 +253,11 @@ TOOLS = [
         },
     },
     {
+        "name": "image_search",
+        "description": "Find pictures: returns image URLs with the title and address of the page each came from.",
+        "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}, "n": {"type": "integer", "minimum": 1, "maximum": 60}}, "required": ["query"]},
+    },
+    {
         "name": "get_page",
         "description": "Stored plain text of one indexed page, with its URL and dates.",
         "inputSchema": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]},
@@ -257,6 +282,9 @@ def rpc(msg: dict, base: str) -> dict | None:
         args = params.get("arguments") or {}
         if params.get("name") == "search":
             text = search_text(do_search(args), base)
+        elif params.get("name") == "image_search":
+            q = str(args.get("query", ""))
+            text = images_text(q, index.images(q, clamp(args.get("n"), 1, 60, 20)))
         elif params.get("name") == "get_page":
             hit = index.page(str(args.get("url", "")))
             text = page_text(hit) if hit else "Not in the index."

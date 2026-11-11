@@ -41,6 +41,16 @@ export function toolDefs(): ToolDef[] {
       },
     },
     {
+      name: "image_search",
+      description:
+        "Find pictures. Returns numbered images with the direct image URL, the page it came from, size, author and licence (from the Mnx Index, Wikimedia Commons and Openverse).",
+      inputSchema: {
+        type: "object",
+        properties: { query: { type: "string", description: "What to look for" }, page: { type: "integer", minimum: 1, maximum: 10 } },
+        required: ["query"],
+      },
+    },
+    {
       name: "open_pages",
       description:
         "Open up to 20 pages at the same time and return each as clean text with its URL and published date. Results are cached, and near-copies of the same story are reported once. Use this after web_search instead of opening pages one by one.",
@@ -114,6 +124,11 @@ export async function runTool(name: string, args: Record<string, unknown>, reque
       const values = (args.values && typeof args.values === "object" ? args.values : {}) as Record<string, string>;
       const page = await submitForm(str(args.url, "url"), int(args.form, "form"), values, request, optInt(args.max_chars));
       return { data: page, text: pageAsText(page) };
+    }
+    case "image_search": {
+      const { massImages, imagesAsText } = await import("@/lib/browser/masssearch.server");
+      const found = await massImages(str(args.query, "query"), optInt(args.page) ?? 1);
+      return { data: found, text: imagesAsText(found) };
     }
     case "open_pages": {
       const raw = Array.isArray(args.urls) ? args.urls : typeof args.urls === "string" ? args.urls.split(/[\s,]+/) : [];

@@ -11,6 +11,7 @@ import gzip
 import io
 import os
 import random
+import time
 import urllib.request
 
 from warcio.archiveiterator import ArchiveIterator
@@ -78,7 +79,7 @@ def import_file(path: str, shard: Shard, ranks: Ranks, host_cap: int = 40) -> tu
     return seen, kept
 
 
-def run(shard_path: str, ranks: Ranks, files: int, done: set[str], crawl: str | None = None) -> list[str]:
+def run(shard_path: str, ranks: Ranks, files: int, done: set[str], crawl: str | None = None, minutes: float = 0) -> list[str]:
     """Import `files` WET files not imported before. Returns the paths imported."""
     crawl = crawl or latest_crawl()
     paths = [p for p in wet_paths(crawl) if p not in done]
@@ -86,7 +87,11 @@ def run(shard_path: str, ranks: Ranks, files: int, done: set[str], crawl: str | 
     random.Random(len(done)).shuffle(paths)
     shard = Shard(shard_path)
     imported: list[str] = []
+    deadline = time.monotonic() + minutes * 60 if minutes else 0
     for path in paths[:files]:
+        if deadline and time.monotonic() > deadline:
+            print("[cc] time budget used; stopping here")
+            break
         try:
             seen, kept = import_file(path, shard, ranks)
             imported.append(path)

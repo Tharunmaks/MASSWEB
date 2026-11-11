@@ -27,7 +27,7 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", default="both", choices=["crawl", "import", "both"])
-    parser.add_argument("--wet-files", type=int, default=env_int("WET_FILES", 40))
+    parser.add_argument("--wet-files", type=int, default=env_int("WET_FILES", 200))
     parser.add_argument("--minutes", type=float, default=env_int("CRAWL_MINUTES", 30))
     parser.add_argument("--max-pages", type=int, default=env_int("CRAWL_MAX_PAGES", 20000))
     parser.add_argument("--max-index-gb", type=float, default=env_int("MAX_INDEX_GB", 40))
@@ -65,7 +65,7 @@ def main() -> None:
         done = set(crawl.load_lines(done_file))
         crawl_id = ccimport.latest_crawl()
         path = os.path.join(shards, f"cc-{crawl_id}-{stamp}.db")
-        imported = ccimport.run(path, ranks, args.wet_files, done, crawl_id)
+        imported = ccimport.run(path, ranks, args.wet_files, done, crawl_id, minutes=150)
         crawl.save_lines(done_file, sorted(done | set(imported)))
         made.append(path)
 

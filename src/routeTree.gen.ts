@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DlRouteImport } from './routes/dl'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as IconRouteImport } from './routes/icon'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as OpensearchDotxmlRouteImport } from './routes/opensearch[.]xml'
@@ -21,6 +22,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SourceRouteImport } from './routes/source'
 import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as ViewRouteImport } from './routes/view'
+import { Route as ApiImagesRouteImport } from './routes/api/images'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiAgentActionRouteImport } from './routes/api/agent.$action'
 
@@ -42,6 +44,11 @@ const FeedRoute = FeedRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IconRoute = IconRouteImport.update({
+  id: '/icon',
+  path: '/icon',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
@@ -84,6 +91,11 @@ const ViewRoute = ViewRouteImport.update({
   path: '/view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImagesRoute = ApiImagesRouteImport.update({
+  id: '/api/images',
+  path: '/api/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSearchRoute = ApiSearchRouteImport.update({
   id: '/api/search',
   path: '/api/search',
@@ -100,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
   '/health': typeof HealthRoute
+  '/icon': typeof IconRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/opensearch.xml': typeof OpensearchDotxmlRoute
@@ -108,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/images': typeof ApiImagesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
@@ -116,6 +130,7 @@ export interface FileRoutesByTo {
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
   '/health': typeof HealthRoute
+  '/icon': typeof IconRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/opensearch.xml': typeof OpensearchDotxmlRoute
@@ -124,6 +139,7 @@ export interface FileRoutesByTo {
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/images': typeof ApiImagesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
@@ -133,6 +149,7 @@ export interface FileRoutesById {
   '/dl': typeof DlRoute
   '/feed': typeof FeedRoute
   '/health': typeof HealthRoute
+  '/icon': typeof IconRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/opensearch.xml': typeof OpensearchDotxmlRoute
@@ -141,6 +158,7 @@ export interface FileRoutesById {
   '/source': typeof SourceRoute
   '/suggest': typeof SuggestRoute
   '/view': typeof ViewRoute
+  '/api/images': typeof ApiImagesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
@@ -151,6 +169,7 @@ export interface FileRouteTypes {
     | '/dl'
     | '/feed'
     | '/health'
+    | '/icon'
     | '/llms.txt'
     | '/mcp'
     | '/opensearch.xml'
@@ -159,6 +178,7 @@ export interface FileRouteTypes {
     | '/source'
     | '/suggest'
     | '/view'
+    | '/api/images'
     | '/api/search'
     | '/api/agent/$action'
   fileRoutesByTo: FileRoutesByTo
@@ -167,6 +187,7 @@ export interface FileRouteTypes {
     | '/dl'
     | '/feed'
     | '/health'
+    | '/icon'
     | '/llms.txt'
     | '/mcp'
     | '/opensearch.xml'
@@ -175,6 +196,7 @@ export interface FileRouteTypes {
     | '/source'
     | '/suggest'
     | '/view'
+    | '/api/images'
     | '/api/search'
     | '/api/agent/$action'
   id:
@@ -183,6 +205,7 @@ export interface FileRouteTypes {
     | '/dl'
     | '/feed'
     | '/health'
+    | '/icon'
     | '/llms.txt'
     | '/mcp'
     | '/opensearch.xml'
@@ -191,6 +214,7 @@ export interface FileRouteTypes {
     | '/source'
     | '/suggest'
     | '/view'
+    | '/api/images'
     | '/api/search'
     | '/api/agent/$action'
   fileRoutesById: FileRoutesById
@@ -200,6 +224,7 @@ export interface RootRouteChildren {
   DlRoute: typeof DlRoute
   FeedRoute: typeof FeedRoute
   HealthRoute: typeof HealthRoute
+  IconRoute: typeof IconRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   McpRoute: typeof McpRoute
   OpensearchDotxmlRoute: typeof OpensearchDotxmlRoute
@@ -208,6 +233,7 @@ export interface RootRouteChildren {
   SourceRoute: typeof SourceRoute
   SuggestRoute: typeof SuggestRoute
   ViewRoute: typeof ViewRoute
+  ApiImagesRoute: typeof ApiImagesRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiAgentActionRoute: typeof ApiAgentActionRoute
 }
@@ -240,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/icon': {
+      id: '/icon'
+      path: '/icon'
+      fullPath: '/icon'
+      preLoaderRoute: typeof IconRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/llms.txt': {
@@ -298,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ViewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/images': {
+      id: '/api/images'
+      path: '/api/images'
+      fullPath: '/api/images'
+      preLoaderRoute: typeof ApiImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/search': {
       id: '/api/search'
       path: '/api/search'
@@ -320,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   DlRoute: DlRoute,
   FeedRoute: FeedRoute,
   HealthRoute: HealthRoute,
+  IconRoute: IconRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   McpRoute: McpRoute,
   OpensearchDotxmlRoute: OpensearchDotxmlRoute,
@@ -328,6 +369,7 @@ const rootRouteChildren: RootRouteChildren = {
   SourceRoute: SourceRoute,
   SuggestRoute: SuggestRoute,
   ViewRoute: ViewRoute,
+  ApiImagesRoute: ApiImagesRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiAgentActionRoute: ApiAgentActionRoute,
 }

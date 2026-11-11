@@ -449,3 +449,107 @@ export async function massSearch(query: string, request: Request, page = 1): Pro
     took: Date.now() - started,
   };
 }
+
+/* --------------------------------------------------------------------- images */
+
+export type ImageHit = { n: number; title: string; image: string; thumb: string; page: string; host: string; width: number; height: number; credit: string; license: string; engine: string };
+export type ImageResult = { query: string; page: number; images: ImageHit[]; engines: string[]; took: number };
+
+type RawImage = Omit<ImageHit, "n" | "host" | "engine">;
+
+/** Openverse: 800 million openly licensed photos and artworks (Flickr, museums, Wikimedia and more). */
+async function openverseImages(query: string, page: number): Promise<RawImage[]> {
+  type Item = { title?: string; url: string; thumbnail?: string; foreign_landing_url?: string; creator?: string; license?: string; license_version?: string; width?: number; height?: number };
+  const data = await getJson<{ results?: Item[] }>(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=20&page=${page}`, {}, 4000);
+  return (data.results || []).map((item) => ({
+    title: item.title || "",
+    image: item.url,
+    thumb: item.thumbnail || item.url,
+    page: item.foreign_landing_url || item.url,
+    width: item.width || 0,
+    height: item.height || 0,
+    credit: item.creator || "",
+    license: item.license ? `CC ${item.license.toUpperCase()}${item.license_version ? ` ${item.license_version}` : ""}`.replace("CC CC0", "CC0").replace("CC PDM", "Public domain") : "",
+  }));
+}
+
+/** Wikimedia Commons: the free media library behind Wikipedia. */
+async function commonsImages(query: string, page: number): Promise<RawImage[]> {
+  type Info = { url: string; thumburl?: string; descriptionurl?: string; width?: number; height?: number; mime?: string; extmetadata?: Record<string, { value?: string }> };
+  const data = await getJson<{ query?: { pages?: Record<string, { title: string; index?: number; imageinfo?: Info[] }> } }>(
+    `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=20&gsroffset=${(page - 1) * 20}&gsrsearch=${encodeURIComponent(`${query} filetype:bitmap`)}&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=480`,
+    {},
+    6000,
+  );
+  const pages = Object.values(data.query?.pages || {}).sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+  const out: RawImage[] = [];
+  for (const item of pages) {
+    const info = item.imageinfo?.[0];
+    if (!info?.url) continue;
+    const meta = info.extmetadata || {};
+    out.push({
+      title: item.title.replace(/^File:/, "").replace(/\.[a-z0-9]{3,4}$/i, "").replace(/_/g, " "),
+      image: info.url.replace(/\?utm_.*$/, ""),
+      thumb: (info.thumburl || info.url).replace(/\?utm_.*$/, ""),
+      page: info.descriptionurl || info.url,
+      width: info.width || 0,
+      height: info.height || 0,
+      credit: stripTags(meta.Artist?.value || "").slice(0, 80),
+      license: stripTags(meta.LicenseShortName?.value || ""),
+    });
+  }
+  return out;
+}
+
+/** Pictures from pages the Mnx Spiders crawled (each page's main picture). */
+async function mnxImages(query: string, page: number): Promise<RawImage[]> {
+  if (MNX_INDEX === "off" || page > 1) return [];
+  const data = await getJson<{ images?: { image: string; title: string; page: string }[] }>(`${MNX_INDEX}/images?q=${encodeURIComponent(query)}&n=20&format=json`, {}, 3500);
+  return (data.images || []).map((item) => ({ title: item.title, image: item.image, thumb: item.image, page: item.page, width: 0, height: 0, credit: "", license: "" }));
+}
+
+export async function massImages(query: string, page = 1): Promise<ImageResult> {
+  const started = Date.now();
+  const q = query.trim().slice(0, 200);
+  const pageNo = Math.min(Math.max(1, page | 0), 10);
+  if (!q) return { query: q, page: pageNo, images: [], engines: [], took: 0 };
+  const sources: [string, Promise<RawImage[]>][] = [
+    ["Mnx Index", mnxImages(q, pageNo)],
+    ["Wikimedia Commons", commonsImages(q, pageNo)],
+    ["Openverse", openverseImages(q, pageNo)],
+  ];
+  const lists = await Promise.all(sources.map(async ([name, run]) => ({ name, items: await run.catch(() => [] as RawImage[]) })));
+  // Take turns between sources so the first screen mixes them.
+  const images: ImageHit[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < 20; i++) {
+    for (const { name, items } of lists) {
+      const item = items[i];
+      if (!item || !/^https:\/\//i.test(item.image) || seen.has(item.image)) continue;
+      seen.add(item.image);
+      let host = "";
+      try {
+        host = new URL(item.page).hostname.replace(/^www\./, "");
+      } catch {
+        continue;
+      }
+      images.push({ ...item, thumb: /^https:\/\//i.test(item.thumb) ? item.thumb : item.image, n: images.length + 1, host, engine: name });
+    }
+  }
+  return { query: q, page: pageNo, images, engines: lists.filter((l) => l.items.length).map((l) => l.name), took: Date.now() - started };
+}
+
+export function imagesAsText(data: ImageResult): string {
+  const lines = [`Mass Search images: ${data.images.length} for "${data.query}" (sources: ${data.engines.join(", ") || "none answered"})`, ""];
+  for (const item of data.images) {
+    lines.push(
+      `[${item.n}] ${item.title || "Untitled"}`,
+      `Image: ${item.image}`,
+      `Page: ${item.page}`,
+      [item.width ? `${item.width}x${item.height}` : "", item.credit ? `by ${item.credit}` : "", item.license].filter(Boolean).join(" | ") || `from ${item.host}`,
+      "",
+    );
+  }
+  if (!data.images.length) lines.push("No images found. Try fewer or different words.");
+  return lines.join("\n").trimEnd() + "\n";
+}

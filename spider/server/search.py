@@ -165,6 +165,41 @@ class Index:
                 out.append(Hit(url, host, title, re.sub(r"\s+", " ", snippet).strip(), published, crawled, source, score, digest))
         return out
 
+    def images(self, query: str, n: int = 20) -> list[dict]:
+        """Pages whose main picture matches the query (the picture a page shows when shared)."""
+        words = [w.lower().strip(".'-+") for w in WORD.findall(query.strip()[:300])]
+        words = [w for w in words if w][:12]
+        if not words:
+            return []
+        with self.lock:
+            shards = list(self.shards.values())
+        rows: list[tuple] = []
+        for mode in ("and", "or"):
+            rows = []
+            for db in shards:
+                try:
+                    rows += db.execute(
+                        "SELECT p.image, p.title, p.url, p.host, p.published, bm25(fts, 10.0, 1.0, 4.0) * (0.55 + p.quality) AS rank"
+                        " FROM fts JOIN pages p ON p.id = fts.rowid WHERE fts MATCH ? AND p.image != '' ORDER BY rank LIMIT ?",
+                        (self.fts_query(words, mode), n * 3),
+                    ).fetchall()
+                except sqlite3.Error:
+                    continue  # an older shard without pictures
+            if len(rows) >= n or len(words) == 1:
+                break
+        out: list[dict] = []
+        seen: set[str] = set()
+        per_host: dict[str, int] = {}
+        for image, title, url, host, published, _ in sorted(rows, key=lambda r: r[5]):
+            if image in seen or per_host.get(host, 0) >= 4:
+                continue
+            seen.add(image)
+            per_host[host] = per_host.get(host, 0) + 1
+            out.append({"image": image, "title": title, "page": url, "host": host, "published": published})
+            if len(out) >= n:
+                break
+        return out
+
     def page(self, url: str) -> Hit | None:
         with self.lock:
             shards = list(self.shards.values())

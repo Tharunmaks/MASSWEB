@@ -459,7 +459,7 @@ export function AgentAccessSheet({ open, onClose }: { open: boolean; onClose: ()
           <Copyable key={ex.label} label={ex.label} value={ex.value} />
         ))}
         <div className="rounded-2xl border border-rule p-3 text-xs leading-relaxed text-mute">
-          <p className="font-medium text-ink">Tools: web_search, open_page, open_pages, research, follow_link, find_in_page, submit_form</p>
+          <p className="font-medium text-ink">Tools: web_search, image_search, open_page, open_pages, research, follow_link, find_in_page, submit_form</p>
           <p className="mt-1">
             Agents never sign in or fill passwords, and each caller is limited to 120 calls per 10 minutes. To make it private, set a <code>MASSWEB_AGENT_KEY</code> on
             your server; agents then send it as <code>Authorization: Bearer …</code>.
