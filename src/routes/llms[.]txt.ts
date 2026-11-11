@@ -23,7 +23,11 @@ GET ${origin}/search?q=QUERY[&t=images]     (HTML results page)
 GET ${origin}/icon?host=example.com         (a site's logo)
 
 ## Mnx Index (direct)
-The Mnx Spiders' own index answers directly too: https://tharunmakes-mnx-spiders.hf.space/search?q=QUERY (&days=7, &site=example.com).
+The Mnx Spiders' own index, searched directly:
+GET ${origin}/mnx/search?q=QUERY   (&days=7 &site=example.com &n=20 &page=2 &format=json)
+GET ${origin}/mnx/images?q=QUERY
+GET ${origin}/mnx/page?url=URL
+GET ${origin}/mnx/stats
 
 ## REST
 GET ${origin}/api/agent/search?q=QUERY

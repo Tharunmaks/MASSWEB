@@ -15,7 +15,7 @@ import time
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 USER_AGENT = "MnxSpider/1.0 (+https://github.com/Tharunmaks/MASSWEB/blob/main/spider/README.md)"
-BODY_CHARS = 2400  # text kept per page (smaller = more of the web fits); agents open the live page for more
+BODY_CHARS = 1000  # text kept per page (smaller = more of the web fits); agents open the live page for the rest
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pages(
@@ -37,7 +37,8 @@ CREATE INDEX IF NOT EXISTS pages_host ON pages(host);
 CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(
   title, body, host,
   content='pages', content_rowid='id',
-  tokenize='porter unicode61 remove_diacritics 2'
+  tokenize='porter unicode61 remove_diacritics 2',
+  detail=column, columnsize=0
 );
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
 """
@@ -86,6 +87,9 @@ class Shard:
         self.db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('built',?)", (now_iso(),))
         self.db.commit()
         self.db.execute("INSERT INTO fts(fts) VALUES('optimize')")
+        # These lookups only help while building; the search server doesn't need them.
+        self.db.execute("DROP INDEX IF EXISTS pages_digest")
+        self.db.execute("DROP INDEX IF EXISTS pages_host")
         self.db.commit()
         self.db.execute("VACUUM")
         self.db.close()

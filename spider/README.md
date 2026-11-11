@@ -6,7 +6,7 @@ How it works, the same way big search engines do:
 
 1. **Crawl.** `MnxSpider` reads news and blog feeds for fresh pages, visits the front pages of the world's top sites (a few thousand per run, working down the Tranco list), then follows links outward to discover new pages and new sites. It also imports pages from [Common Crawl](https://commoncrawl.org), the free public crawl of billions of pages.
 2. **Index.** Each page's main text (no menus, ads or cookie banners) is stored with its URL, title, published date and crawl date in SQLite full-text "shards" with BM25 ranking.
-3. **Answer.** The search server merges all shards and answers in plain text, so AI agents (Claude, ChatGPT, Gemini, Grok, Mnx) can read results directly.
+3. **Answer.** Mass Web's server merges all shards and answers in plain text, so AI agents (Claude, ChatGPT, Gemini, Grok, Mnx) can read results directly.
 
 ## Being a good robot
 
@@ -17,39 +17,38 @@ User-agent: MnxSpider
 Disallow: /
 ```
 
-## Where things run (all free)
+## Where things run (all free, no secrets)
 
 | Part | Where |
 | --- | --- |
 | Spiders | GitHub Actions: `.github/workflows/spiders.yml` (crawl every 4 hours, Common Crawl import twice a day) |
-| Index | Private Hugging Face dataset `<you>/mnx-index` (shards + the spiders' memory) |
-| Search server | Hugging Face Space `<you>/mnx-spiders` (Docker, free CPU) |
-| Mass Search | Uses the index first, through `MNX_INDEX_URL` (defaults to `https://tharunmakes-mnx-spiders.hf.space`) |
+| Index | The repo's public `index-latest` release: compressed shards plus `manifest.json` and the spiders' memory. GitHub Actions' built-in token publishes it. |
+| Search | Mass Web itself on Vercel (`/mnx/...`): it downloads the shards into its temporary disk and searches them with Node's built-in SQLite. Mass Search asks it first. |
 
-## Setup (once)
+The index is a rolling window kept under `MAX_INDEX_MB` (default 450 MB, about 250,000 pages), because Vercel's temporary disk holds about 500 MB. When it's full, the oldest shards are dropped first.
 
-1. Create a Hugging Face token with **Write** access: huggingface.co/settings/tokens.
-2. In this GitHub repo: Settings → Secrets and variables → Actions → New repository secret, name `HF_TOKEN`, paste the token.
-3. Actions tab → **Mnx Spiders** → Run workflow (mode `both`). The first run creates the dataset and the Space and uploads the first shards.
+## Setup
 
-Optional repository variable `MAX_INDEX_GB` (default 40): when the index grows past it, the oldest crawl shards are removed first.
+Nothing to configure. Actions tab → **Mnx Spiders** → Run workflow (mode `both`) to build the first index now; after that it runs on its own.
 
 ## Using the index
 
+On Mass Web's server:
+
 ```
-GET /search?q=QUERY            plain text: numbered results with URL, published date, crawl date, snippet
+GET /mnx/search?q=QUERY        plain text: numbered results with URL, published date, crawl date, snippet
     &days=7  &site=bbc.co.uk  &n=20  &page=2  &format=json
-GET /images?q=QUERY            pictures: image URL and the page each came from
-GET /page?url=URL              stored text of one page
-GET /stats                     size and freshness
-POST /mcp                      MCP tools: search, image_search, get_page
-GET /llms.txt                  guide for AI agents
+GET /mnx/images?q=QUERY        pictures: image URL and the page each came from
+GET /mnx/page?url=URL          stored text of one page
+GET /mnx/stats                 size and freshness
 ```
+
+Mass Web's MCP tools (`web_search`, `image_search`, `research`) include the index automatically.
 
 ## Run it locally
 
 ```
 pip install -r requirements.txt
 python -m mnx.run --local --mode both --wet-files 2 --minutes 2
-cd server && INDEX_DIR=../out/shards uvicorn app:app --port 7860
+# then point Mass Web at the shards: MNX_INDEX_DIR=out/shards (and put a manifest there), or publish a release
 ```

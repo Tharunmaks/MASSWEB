@@ -178,25 +178,17 @@ const stackExchange: Engine = {
   },
 };
 
-/** The Mnx Index: Mass Web's own index, built by the Mnx Spiders (see spider/ in the repo). */
-const MNX_INDEX = (process.env.MNX_INDEX_URL || "https://tharunmakes-mnx-spiders.hf.space").replace(/\/+$/, "");
+/** The Mnx Index: Mass Web's own index, built by the Mnx Spiders (see spider/) and searched right here. */
 const mnxIndex: Engine = {
   name: "Mnx Index",
   async run(query, page) {
-    if (MNX_INDEX === "off") return [];
-    const data = await getJson<{ results?: { url: string; title: string; snippet: string; published?: string }[] }>(
-      `${MNX_INDEX}/search?q=${encodeURIComponent(query)}&n=10&page=${page}&format=json`,
-      {},
-      3500,
-    );
-    const hits: Hit[] = [];
-    for (const item of data.results || []) {
-      const url = normalizeHit(item.url);
-      if (!url) continue;
-      const date = item.published ? `${item.published.slice(0, 10)} · ` : "";
-      hits.push({ title: item.title || url, url, snippet: `${date}${item.snippet || ""}`.slice(0, 320) });
-    }
-    return hits;
+    const mnx = await import("@/lib/browser/mnxindex.server");
+    if (!(await mnx.ready(4000))) return [];
+    return mnx.search(query, { n: 10, offset: (page - 1) * 10 }).hits.map((h) => ({
+      title: h.title || h.url,
+      url: h.url,
+      snippet: `${h.published ? `${h.published.slice(0, 10)} · ` : ""}${h.snippet}`.slice(0, 320),
+    }));
   },
 };
 
@@ -503,9 +495,10 @@ async function commonsImages(query: string, page: number): Promise<RawImage[]> {
 
 /** Pictures from pages the Mnx Spiders crawled (each page's main picture). */
 async function mnxImages(query: string, page: number): Promise<RawImage[]> {
-  if (MNX_INDEX === "off" || page > 1) return [];
-  const data = await getJson<{ images?: { image: string; title: string; page: string }[] }>(`${MNX_INDEX}/images?q=${encodeURIComponent(query)}&n=20&format=json`, {}, 3500);
-  return (data.images || []).map((item) => ({ title: item.title, image: item.image, thumb: item.image, page: item.page, width: 0, height: 0, credit: "", license: "" }));
+  if (page > 1) return [];
+  const mnx = await import("@/lib/browser/mnxindex.server");
+  if (!(await mnx.ready(4000))) return [];
+  return mnx.images(query, 20).map((item) => ({ title: item.title, image: item.image, thumb: item.image, page: item.page, width: 0, height: 0, credit: "", license: "" }));
 }
 
 export async function massImages(query: string, page = 1): Promise<ImageResult> {

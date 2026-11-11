@@ -13,7 +13,7 @@ on:
         options: [both, crawl, import]
       wet_files:
         description: "Common Crawl files to import (about 1,700 pages each)"
-        default: "200"
+        default: "60"
       minutes:
         description: "Minutes to crawl"
         default: "30"
@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   spiders:
@@ -42,17 +42,13 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Run the spiders
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          MAX_INDEX_GB: ${{ vars.MAX_INDEX_GB || '40' }}
+          GH_TOKEN: ${{ github.token }}
+          MAX_INDEX_MB: ${{ vars.MAX_INDEX_MB || '450' }}
         run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "::warning::The spiders are waiting for setup: add a Hugging Face write token as the Actions secret HF_TOKEN (Settings → Secrets and variables → Actions)."
-            exit 0
-          fi
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MODE="${{ inputs.mode }}"; WET="${{ inputs.wet_files }}"; MIN="${{ inputs.minutes }}"
           elif [ "${{ github.event.schedule }}" = "41 1,13 * * *" ]; then
-            MODE=import; WET=200; MIN=0
+            MODE=import; WET=60; MIN=0
           else
             MODE=crawl; WET=0; MIN=45
           fi

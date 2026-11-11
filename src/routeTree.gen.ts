@@ -24,6 +24,7 @@ import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as ViewRouteImport } from './routes/view'
 import { Route as ApiImagesRouteImport } from './routes/api/images'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as MnxActionRouteImport } from './routes/mnx/$action'
 import { Route as ApiAgentActionRouteImport } from './routes/api/agent.$action'
 
 const IndexRoute = IndexRouteImport.update({
@@ -101,6 +102,11 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MnxActionRoute = MnxActionRouteImport.update({
+  id: '/mnx/$action',
+  path: '/mnx/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAgentActionRoute = ApiAgentActionRouteImport.update({
   id: '/api/agent/$action',
   path: '/api/agent/$action',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/view': typeof ViewRoute
   '/api/images': typeof ApiImagesRoute
   '/api/search': typeof ApiSearchRoute
+  '/mnx/$action': typeof MnxActionRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/view': typeof ViewRoute
   '/api/images': typeof ApiImagesRoute
   '/api/search': typeof ApiSearchRoute
+  '/mnx/$action': typeof MnxActionRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/view': typeof ViewRoute
   '/api/images': typeof ApiImagesRoute
   '/api/search': typeof ApiSearchRoute
+  '/mnx/$action': typeof MnxActionRoute
   '/api/agent/$action': typeof ApiAgentActionRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/view'
     | '/api/images'
     | '/api/search'
+    | '/mnx/$action'
     | '/api/agent/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/view'
     | '/api/images'
     | '/api/search'
+    | '/mnx/$action'
     | '/api/agent/$action'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/view'
     | '/api/images'
     | '/api/search'
+    | '/mnx/$action'
     | '/api/agent/$action'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   ViewRoute: typeof ViewRoute
   ApiImagesRoute: typeof ApiImagesRoute
   ApiSearchRoute: typeof ApiSearchRoute
+  MnxActionRoute: typeof MnxActionRoute
   ApiAgentActionRoute: typeof ApiAgentActionRoute
 }
 
@@ -345,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mnx/$action': {
+      id: '/mnx/$action'
+      path: '/mnx/$action'
+      fullPath: '/mnx/$action'
+      preLoaderRoute: typeof MnxActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/agent/$action': {
       id: '/api/agent/$action'
       path: '/api/agent/$action'
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   ViewRoute: ViewRoute,
   ApiImagesRoute: ApiImagesRoute,
   ApiSearchRoute: ApiSearchRoute,
+  MnxActionRoute: MnxActionRoute,
   ApiAgentActionRoute: ApiAgentActionRoute,
 }
 export const routeTree = rootRouteImport

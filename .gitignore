@@ -12,3 +12,4 @@ artifacts/
 dist-pages/
 spider/out/
 __pycache__/
+.mnx-index/

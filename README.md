@@ -24,7 +24,7 @@ Mass Web has its own search engine. It never uses Bing or Google and it doesn't 
 
 ## Mnx Spiders (Mass Web's own crawler and index)
 
-`spider/` holds Mass Web's own crawler, **MnxSpider**, and the **Mnx Index** it builds. The spiders run on GitHub Actions, read news feeds, crawl outward along links (obeying robots.txt) and import Common Crawl; the index and its search server live on Hugging Face. Mass Search asks the Mnx Index first. Setup and API: [spider/README.md](spider/README.md).
+`spider/` holds Mass Web's own crawler, **MnxSpider**, and the **Mnx Index** it builds. The spiders run on GitHub Actions, read news feeds, crawl outward along links (obeying robots.txt) and import Common Crawl; the index is published to this repo's `index-latest` release and Mass Web on Vercel searches it (`/mnx/search?q=...`). No outside service or secret. Mass Search asks the Mnx Index first. Setup and API: [spider/README.md](spider/README.md).
 
 ## Agent tools
 

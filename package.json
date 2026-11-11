@@ -1,6 +1,9 @@
 {
   "name": "mass-web",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "sideEffects": false,
   "type": "module",
   "overrides": {

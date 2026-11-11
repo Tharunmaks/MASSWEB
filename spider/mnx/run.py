@@ -4,10 +4,8 @@
   python -m mnx.run --mode import    add pages from Common Crawl (daily)
   python -m mnx.run --mode both
 
-With HF_TOKEN set it keeps everything on the token owner's Hugging Face account:
-  dataset  <user>/mnx-index    the index shards and the spiders' memory (private)
-  Space    <user>/mnx-spiders  the search server that answers AI agents
-Without HF_TOKEN (--local) it just builds shards in ./out for testing.
+The index is kept on a public GitHub Release (see releases.py). GitHub Actions' built-in
+token is all it needs, so there is no secret to set. --local builds shards in ./out for testing.
 """
 
 from __future__ import annotations
@@ -30,17 +28,10 @@ def main() -> None:
     parser.add_argument("--wet-files", type=int, default=env_int("WET_FILES", 200))
     parser.add_argument("--minutes", type=float, default=env_int("CRAWL_MINUTES", 30))
     parser.add_argument("--max-pages", type=int, default=env_int("CRAWL_MAX_PAGES", 20000))
-    parser.add_argument("--max-index-gb", type=float, default=env_int("MAX_INDEX_GB", 40))
+    parser.add_argument("--max-index-mb", type=float, default=env_int("MAX_INDEX_MB", 450))
     parser.add_argument("--local", action="store_true")
     parser.add_argument("--work", default=os.path.join(HERE, "out"))
     args = parser.parse_args()
-
-    token = os.environ.get("HF_TOKEN", "")
-    if not token and not args.local:
-        raise SystemExit(
-            "HF_TOKEN is missing. Create a Hugging Face token with write access "
-            "(huggingface.co/settings/tokens) and add it to the GitHub repo as an Actions secret named HF_TOKEN."
-        )
 
     work = args.work
     state = os.path.join(work, "state")
@@ -49,13 +40,12 @@ def main() -> None:
     os.makedirs(shards, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M", time.gmtime())
 
-    hub = None
+    release = None
     if not args.local:
-        from . import publish
+        from . import releases
 
-        hub = publish.Hub(token)
-        hub.ensure(os.path.join(HERE, "server"))
-        hub.pull_state(state)
+        release = releases
+        release.download_state(state)
 
     ranks = Ranks.load(os.path.join(state, "tranco.csv"))
     made: list[str] = []
@@ -78,10 +68,8 @@ def main() -> None:
     for path in made:
         print(f"[run] built {os.path.basename(path)}: {os.path.getsize(path) / 1e6:.1f} MB")
 
-    if hub:
-        hub.push(made, state)
-        hub.trim(args.max_index_gb)
-        hub.summary()
+    if release:
+        release.publish(made, state, args.max_index_mb)
         shutil.rmtree(shards, ignore_errors=True)
 
 
