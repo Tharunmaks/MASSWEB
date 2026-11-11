@@ -161,7 +161,7 @@ export function search(query: string, opts: { n?: number; offset?: number; days?
   }
   sql += " ORDER BY rank LIMIT ?";
   const phrase = list.join(" ");
-  const english = /^[\x00-\x7f]*$/.test(phrase);
+  const english = [...phrase].every((ch) => ch.charCodeAt(0) < 128);
   const now = Date.now();
   let hits: MnxHit[] = [];
   for (const mode of ["and", "or"] as const) {
